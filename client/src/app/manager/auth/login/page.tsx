@@ -2,6 +2,7 @@ function ManagerLogin () {
     return (
         <div>
             Manager-Login Page.
+            
         </div>
     )
 }
