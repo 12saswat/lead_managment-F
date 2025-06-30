@@ -25,7 +25,7 @@ export default function ManagerLogin() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e:React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     
