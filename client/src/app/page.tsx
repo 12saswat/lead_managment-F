@@ -1,4 +1,6 @@
 'use client'
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function Home() {
@@ -21,7 +23,7 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden">
      
-
+      
       <div className="relative z-10 text-center px-8 max-w-6xl">
         
         {/* Main INDIBUS Logo */}
@@ -45,7 +47,7 @@ export default function Home() {
               `
             }}
           >
-            INDIBUS
+            <Link href="/manager/auth/login"><Button>Login</Button></Link>
           </h1>
         </div>
       </div>

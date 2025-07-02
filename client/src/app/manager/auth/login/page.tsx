@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff, Briefcase, Loader2, Shield, Users } from "lucide-react";
+import { toast } from 'sonner';
 
 export default function ManagerLogin() {
   const [email, setEmail] = useState("");
@@ -33,29 +34,33 @@ export default function ManagerLogin() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const response = await fetch("http://localhost:4000/user/login", {
+      const response = await fetch("http://localhost:8080/api/v1/manager/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
       const data = await response.json();
 
       if (data.success) {
         // Store user data in memory (not localStorage for this demo)
-        const userData = {
-          email: data.user.email,
-          role: data.user.role,
-        };
+        // const userData = {
+        //   email: data.user.email,
+        //   role: data.user.role,
+        // };
         
         // Simulate successful login
-        alert("Login successful! Redirecting to dashboard...");
+        toast('Login successful! Redirecting to dashboard...');
+        // Fix Me : Route is static here we need to write dynamic route.
+        window.location.replace("/leads/upload-leads/12");
+        // router.push('/leads/upload-leads/12');
       } else {
-        alert("Login failed: " + (data.msg || "Invalid credentials"));
+        toast("Login failed: " + (data.msg || "Invalid credentials"));
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("Login error: Something went wrong. Please try again.");
+      toast("Login error ddd: Something went wrong. Please try again."+error);
     } finally {
       setIsLoading(false);
     }
@@ -65,9 +70,9 @@ export default function ManagerLogin() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-10 right-10 w-32 h-32 bg-blue-200/30 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 left-10 w-40 h-40 bg-indigo-200/30 rounded-full blur-xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/3 left-1/4 w-24 h-24 bg-purple-200/20 rounded-full blur-lg animate-bounce"></div>
+        <div className="absolute top-10 right-10 w-42 h-42 bg-blue-200/30 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute bottom-20 left-10 w-50 h-50 bg-indigo-200/30 rounded-full blur-xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/3 left-1/4 w-34 h-34 bg-purple-200/20 rounded-full blur-lg animate-bounce"></div>
       </div>
 
       {/* Floating Geometric Shapes */}
@@ -90,7 +95,7 @@ export default function ManagerLogin() {
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           
           {/* Left Section - Brand & Features */}
-          <div className="space-y-8 text-center lg:text-left order-2 lg:order-1">
+          <div className="space-y-8 text-center lg:text-left order-1 lg:order-1">
             {/* Brand Header */}
             <div className="space-y-4">
               <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
@@ -112,13 +117,13 @@ export default function ManagerLogin() {
                 </span>
               </h1>
               
-              <p className="text-lg text-gray-600 max-w-md mx-auto lg:mx-0">
+              <p className="text-lg text-gray-600 max-w-md mx-auto lg:mx-0 hidden md:block">
                 Streamline client relationships, manage resources efficiently, and drive your team's success.
               </p>
             </div>
 
             {/* Feature Cards */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4 hidden lg:grid">
               <div className="p-6 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                 <div className="flex items-start gap-4">
                   <div className="p-3 bg-blue-100 rounded-xl">
@@ -146,7 +151,7 @@ export default function ManagerLogin() {
           </div>
 
           {/* Right Section - Login Form */}
-          <div className="w-full max-w-md mx-auto order-1 lg:order-2">
+          <div className="w-full max-w-md mx-auto order-2 lg:order-2">
             <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-2xl hover:shadow-3xl transition-all duration-500">
               <CardHeader className="text-center pb-8">
                 <CardTitle className="text-3xl font-bold text-gray-900">
