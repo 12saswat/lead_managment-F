@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff, Briefcase, Loader2, Shield, Users } from "lucide-react";
 import { toast } from 'sonner';
+import Axios from "@/lib/Axios";
 
 export default function ManagerLogin() {
   const [email, setEmail] = useState("");
@@ -31,24 +32,12 @@ export default function ManagerLogin() {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const response = await fetch("http://localhost:8080/api/v1/manager/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
+      const response = await Axios.post("/manager/login",{ email, password });
 
-      const data = await response.json();
-
+      const data = await response.data;
+      console.log("This is the data>>",data)
       if (data.success) {
-        // Store user data in memory (not localStorage for this demo)
-        // const userData = {
-        //   email: data.user.email,
-        //   role: data.user.role,
-        // };
         
         // Simulate successful login
         toast('Login successful! Redirecting to dashboard...');
