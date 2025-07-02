@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeWrapper } from "../../components/ThemeWrapper";
-
+ import { Toaster } from 'sonner';
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ThemeWrapper>{children}</ThemeWrapper>
+        <ThemeWrapper>{children} <Toaster /></ThemeWrapper>
       </body>
     </html>
   );
