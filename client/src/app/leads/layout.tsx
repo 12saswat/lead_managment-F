@@ -2,8 +2,7 @@
 import { usePathname } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Appsidebar from "../../../components/Appsidebar";
-import Navbar from "../../../components/Navbar";
-
+import Navbar2 from "../../../components/Navbar2";
 export default function ManagerLayout({
   children,
 }: Readonly<{
@@ -17,11 +16,8 @@ export default function ManagerLayout({
   return (
     <div className="">
           <SidebarProvider>
-        {!hideNavBar && (
-            <Appsidebar />
-            )}
             <main className="w-full">
-             {!hideNavBar &&(<Navbar />)} 
+             {!hideNavBar &&(<Navbar2 />)} 
                 {children}
             </main>
           </SidebarProvider>
