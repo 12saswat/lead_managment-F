@@ -1,5 +1,5 @@
 "use client";
-import { LogOut, Moon, Settings, User } from 'lucide-react'
+import { LogOut, Moon, Settings, SquareArrowLeft, User } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -15,16 +15,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+  const handleGoBack = () => {
+    window.history.back();
+  };
 const Navbar = () => {
     // const {toggleSidebar}=useSidebar();
     const { setTheme } = useTheme();
   return (
-   <nav className=' flex justify-between flex-col'>
+   <nav className=' flex justify-between px-4 flex-col shadow-sm'>
     {/* LEFT */}
-    
     {/* RIGHT */}
     <div className='flex items-center p-2 justify-between gap-4'>
-    <SidebarTrigger />
+    <SquareArrowLeft onClick={handleGoBack} />
     <div className='flex items-center justify-between gap-4'>
 
     
