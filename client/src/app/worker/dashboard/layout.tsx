@@ -3,20 +3,32 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-export default function WorkerDashboardLayout({ children }: { children: React.ReactNode }) {
+export default function WorkerDashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const router = useRouter()
-  const [isChecking, setIsChecking] = useState(true)
+  const [isAllowed, setIsAllowed] = useState<boolean | null>(null)
 
-  useEffect(() => {
-     const token = localStorage.getItem('token')
-    if (!token) {
-      router.replace('/worker/auth/login')
-    } else {
-      setIsChecking(false)
-    }
-  }, [router])
+  // useEffect(() => {
+  //   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
-  if (isChecking) return null
-  
+  //   if (!token) {
+  //     router.replace('/worker/auth/login')
+  //   } else {
+  //     setIsAllowed(true)
+  //   }
+  // }, [router])
+
+  if (isAllowed === null) {
+  return (
+    <div className="w-full h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600" />
+    </div>
+  )
+}
+
+
   return <>{children}</>
 }

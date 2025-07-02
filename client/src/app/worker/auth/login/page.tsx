@@ -1,150 +1,404 @@
-'use client'
+"use client";
 
-import { useForm } from 'react-hook-form'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect, useRef } from 'react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Mail, Lock } from 'lucide-react'
-import { ToastContainer, toast } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
-import axios from 'axios'
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Mail, Lock, BookOpen } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
+import Link from "next/link";
+import Axios from "@/lib/Axios";
 
 interface LoginData {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export default function WorkerLogin() {
-  const { register, handleSubmit } = useForm<LoginData>()
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const formRef = useRef<HTMLDivElement>(null)
+  const [showForgot, setShowForgot] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmNewPass, setConfirmNewPass] = useState("");
+  const [resendTimer, setResendTimer] = useState(60);
+  const otpInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
+  const [formData, setFormData] = useState<LoginData>({
+    email: "",
+    password: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (showForgot && !otpSent) emailInputRef.current?.focus();
+    if (showForgot && otpSent && !otpVerified) otpInputRef.current?.focus();
+  }, [showForgot, otpSent, otpVerified]);
+
+  useEffect(() => {
+    if (!otpSent || otpVerified) return;
+    if (resendTimer === 0) return;
+    const interval = setInterval(() => {
+      setResendTimer((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [otpSent, otpVerified, resendTimer]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      formRef.current?.classList.remove('translate-y-10', 'opacity-0')
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [])
+      formRef.current?.classList.remove("translate-y-10", "opacity-0");
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const onSubmit = async (data: LoginData) => {
-    if (!data.email || !data.password) {
-      toast.error('Email and Password are required')
-      return
+  const handleInputChange = (field: keyof LoginData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const onSubmit = async () => {
+    if (!formData.email || !formData.password) {
+      toast.error("Email and Password are required");
+      return;
     }
 
-    setIsLoading(true)
-   try {
-  const res = await axios.post('http://localhost:8080/api/v1/worker/login', data,{
-  withCredentials: true,
-})
+    setIsLoading(true);
+    try {
+      await Axios.post("/worker/login", formData, {
+        withCredentials: true,
+      });
 
-  toast.success('Login successful!')
-  setTimeout(() => {
-    router.push('/worker/dashboard')
-  }, 1500)
+      toast.success("Login successful!");
+      setTimeout(() => {
+        // router.push("/worker/dashboard");
+        window.location.replace("/worker/dashboard");
+      }, 1500);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Login failed";
+      toast.error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-} catch (err: any) {
-  const msg = err.response?.data?.message || 'Login failed'
-  toast.error(msg)
- } finally {
-   setIsLoading(false)
- }
- }
+  const FloatingBook = ({
+    className,
+    delay = 0,
+  }: {
+    className: string;
+    delay?: number;
+  }) => (
+    <div
+      className={`absolute ${className} animate-pulse`}
+      style={{
+        animationDelay: `${delay}s`,
+        animationDuration: "3s",
+      }}
+    >
+      <BookOpen className="w-6 h-6 text-blue-300/60 transform rotate-12" />
+    </div>
+  );
 
+  const FloatingShape = ({
+    className,
+    color = "bg-blue-200/30",
+  }: {
+    className: string;
+    color?: string;
+  }) => (
+    <div
+      className={`absolute ${className} ${color} rounded-full blur-sm animate-float`}
+    />
+  );
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white text-gray-900">
-      {/* Left Section */}
-      <div className="hidden lg:flex flex-1 bg-blue-600 p-8 flex-col justify-center">
-        <div className="max-w-xl mb-32 ml-22">
-          <h2 className="text-white text-4xl font-bold leading-tight mb-4">
-            Welcome Back to Your Worker Hub
-          </h2>
-          <p className="text-white/90 text-base">
-            Manage your workflow, stay organized, and access your dashboard securely.
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col lg:flex-row items-center justify-center p-4 relative overflow-hidden">
+      <FloatingShape className="w-20 h-20 top-10 left-10 bg-blue-200/30" />
+      <FloatingShape className="w-32 h-32 top-20 right-20 bg-indigo-200/30" />
+      <FloatingShape className="w-24 h-24 bottom-20 left-20 bg-purple-200/20" />
+      <FloatingShape className="w-16 h-16 bottom-32 right-32 bg-blue-100" />
 
-      {/* Right Section */}
-      <div className="flex-1 p-6 flex flex-col justify-center items-center bg-gradient-to-br from-slate-50 to-indigo-100">
-        <div className="flex flex-col lg:flex-row justify-center items-center w-full max-w-4xl gap-6">
-          <div className="lg:hidden text-center">
-            <h2 className="text-2xl font-bold text-blue-600">
-              Welcome Back to Your Worker Hub
+      <FloatingBook className="top-16 left-1/4" delay={0} />
+      <FloatingBook className="top-1/3 right-1/4" delay={1} />
+      <FloatingBook className="bottom-1/4 left-1/3" delay={2} />
+
+      <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 items-center">
+        <div className="text-center lg:text-left space-y-6 relative">
+          <div className="inline-flex items-center space-x-2 mb-8">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Worker's Zone</h1>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
+              Welcome Back to Your
+              <span className="block text-blue-600">Worker Hub</span>
             </h2>
-            <p className="text-sm text-gray-600">
-              Manage your workflow, stay organized, and access your dashboard securely.
+
+            <p className="text-gray-600 text-lg max-w-md">
+              Manage your workflow, stay organized, and access your dashboard
+              securely.
             </p>
           </div>
 
-          <div
-            ref={formRef}
-            className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-gray-100/50 transform transition-all duration-700 translate-y-10 opacity-0"
-          >
-            <h2 className="text-2xl font-bold mb-6 text-center">Worker Login</h2>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  className="pl-10 h-12 rounded-lg"
-                  {...register('email')}
-                />
+          <div className="relative mt-12 lg:mt-16">
+            <div className="w-80 h-80 mx-auto lg:mx-0 relative">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-32 h-40 bg-gradient-to-b from-blue-400 to-blue-500 rounded-t-full relative animate-bounce-slow">
+                  <div className="w-8 h-8 bg-orange-300 rounded-full absolute top-4 left-1/2 transform -translate-x-1/2" />
+                  <div className="w-20 h-24 bg-blue-600 rounded-lg absolute bottom-0 left-1/2 transform -translate-x-1/2" />
+                </div>
               </div>
-
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  className="pl-10 h-12 rounded-lg"
-                  {...register('password')}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8z"
-                      />
-                    </svg>
-                    <span>Logging in...</span>
+              <div className="absolute inset-0">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute animate-spin-slow"
+                    style={{
+                      top: `${20 + i * 10}%`,
+                      left: `${15 + i * 12}%`,
+                      animationDelay: `${i * 0.5}s`,
+                      animationDuration: "8s",
+                    }}
+                  >
+                    <BookOpen className="w-8 h-8 text-blue-400/70" />
                   </div>
-                ) : (
-                  'Login'
-                )}
-              </Button>
-            </form>
+                ))}
+              </div>
+              <div className="absolute inset-0 -z-10">
+                <div className="w-full h-full bg-gradient-to-br from-blue-100/50 to-indigo-100/50 rounded-full blur-3xl" />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+        <div className="w-full max-w-md mx-auto">
+          <Card className="bg-white/80 backdrop-blur-sm border-gray-100/50 shadow-xl text-gray-900">
+            <CardContent className="p-8">
+              <div
+                ref={formRef}
+                className="transform transition-all duration-700 translate-y-10 opacity-0"
+              >
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    Worker Login
+                  </h3>
+                  <p className="text-gray-600">
+                    Access your dashboard securely
+                  </p>
+                </div>
 
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar pauseOnHover />
+                <div className="space-y-6">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                      ref={emailInputRef}
+                      type="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      className="pl-10 h-12 border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      className="pl-10 h-12 border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  <Button
+                    onClick={onSubmit}
+                    disabled={isLoading}
+                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Logging in...</span>
+                      </div>
+                    ) : (
+                      "Login"
+                    )}
+                  </Button>
+                  <p className="text-sm text-center text-gray-500 mt-4">
+                    New user?{" "}
+                    <Link
+                      href="/worker/auth/register"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Sign up here
+                    </Link>
+                  </p>
+
+                  <div className="text-center text-sm text-gray-500 mt-6 space-y-1">
+                    <p>
+                      <button
+                        onClick={() => setShowForgot(true)}
+                        className="text-indigo-600 hover:underline"
+                      >
+                        Forgot Password?
+                      </button>
+                    </p>
+                    <p>
+                      Need assistance?{" "}
+                      <Link
+                        href="#"
+                        className="text-indigo-600 hover:underline"
+                      >
+                        Contact Support
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {showForgot && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 text-gray-900">
+            <div className="bg-white p-6 rounded-xl w-full max-w-sm space-y-4 shadow-lg text-gray-900">
+              <h3 className="text-lg font-semibold text-center text-gray-900">
+                Reset Password
+              </h3>
+              {!otpSent ? (
+                <>
+                  <Input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                  <Button
+                    onClick={async () => {
+                      await Axios.post("/api/send-otp", { email: forgotEmail });
+                      toast.success("OTP sent to your email");
+                      setOtpSent(true);
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    Send OTP
+                  </Button>
+                </>
+              ) : !otpVerified ? (
+                <>
+                  <Input
+                    ref={otpInputRef}
+                    type="text"
+                    placeholder="Enter OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                  />
+                  <Button
+                    onClick={async () => {
+                      const res = await Axios.post("/api/verify-otp", {
+                        email: forgotEmail,
+                        otp,
+                      });
+                      if (res.data.success) {
+                        toast.success("OTP verified!");
+                        setOtpVerified(true);
+                      } else {
+                        toast.error("Invalid OTP");
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    Verify OTP
+                  </Button>
+                  <Button
+                    disabled={resendTimer > 0}
+                    onClick={async () => {
+                      await Axios.post("/api/send-otp", { email: forgotEmail });
+                      toast.success("OTP resent!");
+                      setResendTimer(60);
+                    }}
+                    className="w-full text-sm text-indigo-600 disabled:text-gray-400"
+                  >
+                    {resendTimer > 0
+                      ? `Resend OTP in ${resendTimer}s`
+                      : "Resend OTP"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Input
+                    type="password"
+                    placeholder="New password"
+                    value={newPass}
+                    onChange={(e) => setNewPass(e.target.value)}
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmNewPass}
+                    onChange={(e) => setConfirmNewPass(e.target.value)}
+                  />
+                  <Button
+                    onClick={async () => {
+                      if (newPass !== confirmNewPass) {
+                        toast.error("Passwords do not match");
+                        return;
+                      }
+                      await axios.post("/api/reset-password", {
+                        email: forgotEmail,
+                        password: newPass,
+                      });
+                      toast.success("Password reset successfully");
+                      setShowForgot(false);
+                      setOtpSent(false);
+                      setOtpVerified(false);
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    Change Password
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                onClick={() => setShowForgot(false)}
+                className="w-full text-gray-500"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar
+        pauseOnHover
+      />
     </div>
-  )
+  );
 }

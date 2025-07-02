@@ -1,12 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { toast } from "react-toastify"
 
 export default function DashboardPage() {
   const router = useRouter()
 
   const handleLogout = () => {
     localStorage.removeItem('token')
+    toast.success("Logged out successfully")
     router.replace('/worker/auth/login')
   }
 
