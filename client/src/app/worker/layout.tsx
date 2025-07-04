@@ -10,11 +10,10 @@ export default function ManagerLayout({
     const pathname = usePathname();
     const hideNavBar =
     pathname.startsWith('/manager/auth') ||
-    pathname === '/worker/auth/login' ||
-    pathname === '/worker/auth/register'
+    pathname.startsWith('/worker/auth')
     return (
         <div className="manager-layout-wrapper">
-            {
+            {       
                 !hideNavBar && (
                     <WorkerNavBar />
                 )
