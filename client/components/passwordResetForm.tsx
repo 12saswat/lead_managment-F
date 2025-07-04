@@ -74,8 +74,7 @@ const PasswordResetForm = () => {
         <div className="p-10 max-w-md mx-auto bg-white/80 backdrop-blur-sm border border-gray-100 shadow-xl text-gray-900 flex flex-col justify-center rounded-2xl space-y-5">
             <h2 className="text-2xl font-bold text-gray-900 text-center">Password Reset</h2>
             <p className="text-center text-gray-600">
-                Enter the 6-digit OTP sent to your email for user ID:{" "}
-                <span className="font-semibold">{userId ?? "undefined"}</span>
+                Enter the 6-digit OTP sent to your email to verify your identity and reset your password.
             </p>
 
             {/* OTP Field */}
