@@ -28,6 +28,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
 
 // Menu items.
 const items = [
@@ -117,33 +118,16 @@ const Appsidebar = () => {
       </SidebarContent>
 <SidebarSeparator className="-mx-0" />
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton>
-                    <User2 /> Username
-                    <ChevronUp className="ml-auto" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end"
-                  side="top"
-                  className="w-[--radix-popper-anchor-width]"
-                >
-                  <DropdownMenuItem>
-                    <User2 />
-                    <span>Account</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Settings />
-                    <span>Setting</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <LogOut className="text-red-500" />
-                    <span className="text-red-500">Sign out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        <SidebarMenu >
+          <SidebarMenuItem className="flex">
+            <SidebarMenuButton asChild>
+              <Link href="/">
+                <Image src="/window.svg" alt="logo" width={20} height={20} />
+                <span>Rahul Kumar</span>
+              </Link>
+            </SidebarMenuButton>
+            <LogOut />
+              {/* <Button variant="destructive" size={"smm"}>LogOut</Button> */}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
