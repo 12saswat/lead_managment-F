@@ -208,7 +208,7 @@ export default function SignUpPage() {
                     placeholder="Full Name"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
-                    className={`pl-10 h-12 border-gray-200 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                    className={`pl-10 h-12 border-gray-200 text-black focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
                       errors.name ? "border-red-500 ring-red-500" : ""
                     }`}
                   />
@@ -227,7 +227,7 @@ export default function SignUpPage() {
                     placeholder="Email address"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`pl-10 h-12 border-gray-200 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                    className={`pl-10 h-12 border-gray-200 text-black focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
                       errors.email ? "border-red-500 ring-red-500" : ""
                     }`}
                   />
@@ -248,7 +248,7 @@ export default function SignUpPage() {
                     onChange={(e) =>
                       handleInputChange("password", e.target.value)
                     }
-                    className={`pl-10 pr-10 h-12 border-gray-200 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                    className={`pl-10 pr-10 h-12 border-gray-200 text-black focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
                       errors.password ? "border-red-500 ring-red-500" : ""
                     }`}
                   />
@@ -280,7 +280,7 @@ export default function SignUpPage() {
                     onChange={(e) =>
                       handleInputChange("confirmPassword", e.target.value)
                     }
-                    className={`pl-10 pr-10 h-12 border-gray-200 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                    className={`pl-10 pr-10 h-12 border-gray-200 text-black focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
                       errors.confirmPassword
                         ? "border-red-500 ring-red-500"
                         : ""

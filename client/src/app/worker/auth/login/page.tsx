@@ -20,13 +20,7 @@ interface LoginData {
 
 export default function WorkerLogin() {
   const [showForgot, setShowForgot] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [newPass, setNewPass] = useState("");
-  const [confirmNewPass, setConfirmNewPass] = useState("");
-  const [resendTimer, setResendTimer] = useState(60);
   const otpInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,21 +31,6 @@ export default function WorkerLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (showForgot && !otpSent) emailInputRef.current?.focus();
-    if (showForgot && otpSent && !otpVerified) otpInputRef.current?.focus();
-  }, [showForgot, otpSent, otpVerified]);
-
-  useEffect(() => {
-    if (!otpSent || otpVerified) return;
-    if (resendTimer === 0) return;
-    const interval = setInterval(() => {
-      setResendTimer((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [otpSent, otpVerified, resendTimer]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -286,102 +265,38 @@ export default function WorkerLogin() {
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 text-gray-900">
             <div className="bg-white p-6 rounded-xl w-full max-w-sm space-y-4 shadow-lg text-gray-900">
               <h3 className="text-lg font-semibold text-center text-gray-900">
-                Reset Password
+                Forgot Password
               </h3>
-              {!otpSent ? (
-                <>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                  />
-                  <Button
-                    onClick={async () => {
-                      await Axios.post("/api/send-otp", { email: forgotEmail });
-                      toast.success("OTP sent to your email");
-                      setOtpSent(true);
-                    }}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    Send OTP
-                  </Button>
-                </>
-              ) : !otpVerified ? (
-                <>
-                  <Input
-                    ref={otpInputRef}
-                    type="text"
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                  />
-                  <Button
-                    onClick={async () => {
-                      const res = await Axios.post("/api/verify-otp", {
-                        email: forgotEmail,
-                        otp,
-                      });
-                      if (res.data.success) {
-                        toast.success("OTP verified!");
-                        setOtpVerified(true);
-                      } else {
-                        toast.error("Invalid OTP");
-                      }
-                    }}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    Verify OTP
-                  </Button>
-                  <Button
-                    disabled={resendTimer > 0}
-                    onClick={async () => {
-                      await Axios.post("/api/send-otp", { email: forgotEmail });
-                      toast.success("OTP resent!");
-                      setResendTimer(60);
-                    }}
-                    className="w-full text-sm text-indigo-600 disabled:text-gray-400"
-                  >
-                    {resendTimer > 0
-                      ? `Resend OTP in ${resendTimer}s`
-                      : "Resend OTP"}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Input
-                    type="password"
-                    placeholder="New password"
-                    value={newPass}
-                    onChange={(e) => setNewPass(e.target.value)}
-                  />
-                  <Input
-                    type="password"
-                    placeholder="Confirm new password"
-                    value={confirmNewPass}
-                    onChange={(e) => setConfirmNewPass(e.target.value)}
-                  />
-                  <Button
-                    onClick={async () => {
-                      if (newPass !== confirmNewPass) {
-                        toast.error("Passwords do not match");
-                        return;
-                      }
-                      await axios.post("/api/reset-password", {
-                        email: forgotEmail,
-                        password: newPass,
-                      });
-                      toast.success("Password reset successfully");
-                      setShowForgot(false);
-                      setOtpSent(false);
-                      setOtpVerified(false);
-                    }}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    Change Password
-                  </Button>
-                </>
-              )}
+
+              <Input
+                type="email"
+                placeholder="Enter your registered email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+              />
+
+              <Button
+                onClick={async () => {
+                  if (!forgotEmail) {
+                    toast.error("Please enter your email.");
+                    return;
+                  }
+                  try {
+                    await axios.post("http://localhost:8080/api/v1/worker/forgot-password", {
+                      email: forgotEmail,
+                    });
+                    toast.success("OTP sent to your email.");
+                    setShowForgot(false);
+                  } catch (error: any) {
+                    const msg = error.response?.data?.message || "Failed to send OTP.";
+                    toast.error(msg);
+                  }
+                }}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                Send OTP
+              </Button>
+
               <Button
                 variant="ghost"
                 onClick={() => setShowForgot(false)}
