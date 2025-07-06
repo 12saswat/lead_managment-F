@@ -1,4 +1,4 @@
-import { Calendar,LogOut, ChevronUp, Home, Inbox, Search, Settings, User, User2, User2Icon, Plus, Projector, ChevronDown, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, FileText } from "lucide-react"
+import { LogOut, Plus, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, FileText } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -34,34 +34,34 @@ import { Button } from "@/components/ui/button"
 const items = [
   {
     title: "Dashboard",
-    url: "#",
+    url: "dashboard",
     icon: LayoutDashboard,
   },
   {
     title: "All Leads",
-    url: "#",
+    url: "/leads/all-leads",
     icon: Users,
   },
   {
     title: "Add Lead",
-    url: "#",
+    url: "/leads/upload-leads",
     icon: Plus,
   },
   {
     title: "Bulk Lead",
-    url: "#ff",
+    url: "/leads/upload-leads-bulk/${id}",
     icon: Copy,
   },
-  {
-    title: "Categories",
-    url: "#",
-    icon: Layers,
-  },
-  {
-    title: "Assignments",
-    url: "#",
-    icon: Briefcase,
-  },
+  // {
+  //   title: "Categories",
+  //   url: "#",
+  //   icon: Layers,
+  // },
+  // {
+  //   title: "Assignments",
+  //   url: "#",
+  //   icon: Briefcase,
+  // },
   {
     title: "Campaigns",
     url: "#",
@@ -74,7 +74,7 @@ const items = [
   },
 ]
 
-const Appsidebar = () => {
+const WorkerSidebar = () => {
   return (
     <Sidebar collapsible="icon" side="left">
       <SidebarHeader className="py-4">
@@ -96,38 +96,34 @@ const Appsidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {
-                items.map(item=>(
+                items.map(item => (
                   <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+                    <SidebarMenuButton asChild>
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
                     {/* {item.title==="Add Lead" && <SidebarMenuBadge >
                       <Plus size={15} /><span className="sr-only">Add Project</span>
                     </SidebarMenuBadge>} */}
-                </SidebarMenuItem>
+                  </SidebarMenuItem>
                 ))
               }
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-             
+
 
       </SidebarContent>
-<SidebarSeparator className="-mx-0" />
+      <SidebarSeparator className="-mx-0" />
       <SidebarFooter>
-        <SidebarMenu >
-          <SidebarMenuItem className="flex">
-            <SidebarMenuButton asChild>
-              <Link href="/">
-                <Image src="/window.svg" alt="logo" width={20} height={20} />
-                <span>Rahul Kumar</span>
-              </Link>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton>
+              <LogOut size={16} />
+              <span>Rahul Kumar</span>
             </SidebarMenuButton>
-            <LogOut />
-              {/* <Button variant="destructive" size={"smm"}>LogOut</Button> */}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
@@ -135,4 +131,4 @@ const Appsidebar = () => {
   )
 }
 
-export default Appsidebar;
+export default WorkerSidebar;
