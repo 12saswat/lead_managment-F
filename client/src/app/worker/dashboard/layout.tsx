@@ -1,34 +1,30 @@
 'use client'
+import { usePathname } from "next/navigation";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import WorkerSidebar from "../../../../components/Workersidebar";
+import Navbar from "../../../../components/Navbar";
 
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-
-export default function WorkerDashboardLayout({
+export default function ManagerLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
-  const router = useRouter()
-  const [isAllowed, setIsAllowed] = useState<boolean | null>(null)
-
-  // useEffect(() => {
-  //   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-
-  //   if (!token) {
-  //     router.replace('/worker/auth/login')
-  //   } else {
-  //     setIsAllowed(true)
-  //   }
-  // }, [router])
-
-  if (isAllowed === null) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const pathname = usePathname();
+  pathname.startsWith('/worker/auth')
+  const hideNavBar = false;
   return (
-    <div className="w-full h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600" />
+    <div className='bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 text-black'>
+      <SidebarProvider>
+        <main className="w-full flex">
+          <WorkerSidebar />
+          <div className="w-full flex flex-col">
+            {!hideNavBar && (<Navbar />)}
+            <div>
+              {children}
+            </div>
+          </div>
+        </main>
+      </SidebarProvider>
     </div>
-  )
-}
-
-
-  return <>{children}</>
+  );
 }
