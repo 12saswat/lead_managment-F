@@ -1,4 +1,25 @@
-import { Calendar,LogOut, ChevronUp, Home, Inbox, Search, Settings, User, User2, User2Icon, Plus, Projector, ChevronDown, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, FileText } from "lucide-react"
+import {
+  Calendar,
+  LogOut,
+  ChevronUp,
+  Home,
+  Inbox,
+  Search,
+  Settings,
+  User,
+  User2,
+  User2Icon,
+  Plus,
+  Projector,
+  ChevronDown,
+  LayoutDashboard,
+  Users,
+  Copy,
+  Layers,
+  Briefcase,
+  Mail,
+  FileText,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,19 +37,23 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarSeparator,
-} from "@/components/ui/sidebar"
-import Link from "next/link"
-import Image from "next/image"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-
+} from "@/components/ui/sidebar";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
+import { useParams, usePathname } from "next/navigation";
 
 // Menu items.
 const items = [
@@ -39,12 +64,12 @@ const items = [
   },
   {
     title: "All Leads",
-    url: "#",
+    url: "/leads/all-leads",
     icon: Users,
   },
   {
     title: "Add Lead",
-    url: "#",
+    url: "/leads/upload-leads",
     icon: Plus,
   },
   {
@@ -72,11 +97,12 @@ const items = [
     url: "#",
     icon: FileText,
   },
-]
+];
 
 const Appsidebar = () => {
+  const pathname = usePathname();
   return (
-    <Sidebar collapsible="icon" side="left">
+    <Sidebar collapsible="icon" side="left" className="backdrop-blur-sm">
       <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -97,7 +123,10 @@ const Appsidebar = () => {
             <SidebarMenu>
               {
                 items.map(item=>(
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem
+                    className={`rounded-2xl ${item.url === pathname ? "bg-gray-200" : "rounded"}`}
+                    key={item.title}
+                  >
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>
                       <item.icon />
@@ -113,26 +142,20 @@ const Appsidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-             
-
       </SidebarContent>
-<SidebarSeparator className="-mx-0" />
+      <SidebarSeparator className="-mx-0" />
       <SidebarFooter>
-        <SidebarMenu >
-          <SidebarMenuItem className="flex">
-            <SidebarMenuButton asChild>
-              <Link href="/">
-                <Image src="/window.svg" alt="logo" width={20} height={20} />
-                <span>Rahul Kumar</span>
-              </Link>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton>
+              <LogOut size={16} />
+              <span>Rahul Kumar</span>
             </SidebarMenuButton>
-            <LogOut />
-              {/* <Button variant="destructive" size={"smm"}>LogOut</Button> */}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
-}
+  );
+};
 
 export default Appsidebar;

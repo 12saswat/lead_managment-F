@@ -3,6 +3,7 @@ import { usePathname } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Appsidebar from "../../../components/Appsidebar";
 import Navbar2 from "../../../components/Navbar2";
+import Navbar from "../../../components/Navbar";
 export default function ManagerLayout({
   children,
 }: Readonly<{
@@ -11,13 +12,16 @@ export default function ManagerLayout({
   const pathname = usePathname();
 
   //NOTE: Un-comment below logic to remove navbar from auth pages.
-  // const hideNavBar = pathname.startsWith('/manager/auth');
-  const hideNavBar = false;
+  const hideNavBar = pathname.startsWith('/manager/auth');
+  // const hideNavBar = false;
   return (
     <div className="">
-          <SidebarProvider>
+         <SidebarProvider>
+        {!hideNavBar && (
+            <Appsidebar />
+            )}
             <main className="w-full">
-             {!hideNavBar &&(<Navbar2 />)} 
+             {!hideNavBar &&(<Navbar />)} 
                 {children}
             </main>
           </SidebarProvider>

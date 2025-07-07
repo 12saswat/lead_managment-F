@@ -12,8 +12,8 @@ export default function ManagerLayout({
   const pathname = usePathname();
 
   //NOTE: Un-comment below logic to remove navbar from auth pages.
-  // const hideNavBar = pathname.startsWith('/manager/auth');
-  const hideNavBar = false;
+  const hideNavBar = pathname.startsWith('/manager/auth');
+  // const hideNavBar = false;
   return (
     <div className="">
           <SidebarProvider>
