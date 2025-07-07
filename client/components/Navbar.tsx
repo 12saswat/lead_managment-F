@@ -19,7 +19,7 @@ const Navbar = () => {
     // const {toggleSidebar}=useSidebar();
     const { setTheme } = useTheme();
   return (
-   <nav className=' flex justify-between flex-col'>
+   <nav className='dark:bg-[#0F172B]  backdrop-blur-2xl flex justify-between flex-col sticky z-2 top-0 shadow-sm'>
     {/* LEFT */}
     
     {/* RIGHT */}

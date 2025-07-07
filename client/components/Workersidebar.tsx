@@ -1,25 +1,4 @@
-import {
-  Calendar,
-  LogOut,
-  ChevronUp,
-  Home,
-  Inbox,
-  Search,
-  Settings,
-  User,
-  User2,
-  User2Icon,
-  Plus,
-  Projector,
-  ChevronDown,
-  LayoutDashboard,
-  Users,
-  Copy,
-  Layers,
-  Briefcase,
-  Mail,
-  FileText,
-} from "lucide-react";
+import { LogOut, Plus, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, FileText } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -37,29 +16,25 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarSeparator,
-} from "@/components/ui/sidebar";
-import Link from "next/link";
-import Image from "next/image";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/sidebar"
+import Link from "next/link"
+import Image from "next/image"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
-import { useParams, usePathname } from "next/navigation";
+} from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
 
 // Menu items.
 const items = [
   {
     title: "Dashboard",
-    url: "#",
+    url: "dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -74,19 +49,19 @@ const items = [
   },
   {
     title: "Bulk Lead",
-    url: "#ff",
+    url: "/leads/upload-leads-bulk/${id}",
     icon: Copy,
   },
-  {
-    title: "Categories",
-    url: "#",
-    icon: Layers,
-  },
-  {
-    title: "Assignments",
-    url: "#",
-    icon: Briefcase,
-  },
+  // {
+  //   title: "Categories",
+  //   url: "#",
+  //   icon: Layers,
+  // },
+  // {
+  //   title: "Assignments",
+  //   url: "#",
+  //   icon: Briefcase,
+  // },
   {
     title: "Campaigns",
     url: "#",
@@ -97,12 +72,11 @@ const items = [
     url: "#",
     icon: FileText,
   },
-];
+]
 
-const Appsidebar = () => {
-  const pathname = usePathname();
+const WorkerSidebar = () => {
   return (
-    <Sidebar collapsible="icon" side="left" className="backdrop-blur-sm">
+    <Sidebar collapsible="icon" side="left">
       <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -122,26 +96,25 @@ const Appsidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {
-                items.map(item=>(
-                  <SidebarMenuItem
-                    className={`rounded-2xl ${item.url === pathname ? "bg-gray-200" : "rounded"}`}
-                    key={item.title}
-                  >
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+                items.map(item => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
                     {/* {item.title==="Add Lead" && <SidebarMenuBadge >
                       <Plus size={15} /><span className="sr-only">Add Project</span>
                     </SidebarMenuBadge>} */}
-                </SidebarMenuItem>
+                  </SidebarMenuItem>
                 ))
               }
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+
       </SidebarContent>
       <SidebarSeparator className="-mx-0" />
       <SidebarFooter>
@@ -155,7 +128,7 @@ const Appsidebar = () => {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  );
-};
+  )
+}
 
-export default Appsidebar;
+export default WorkerSidebar;
