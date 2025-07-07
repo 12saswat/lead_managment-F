@@ -13,7 +13,7 @@ export default function ManagerLayout({
   pathname.startsWith('/worker/auth')
   const hideNavBar = false;
   return (
-    <div className='bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 text-black'>
+    <div className='bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'>
       <SidebarProvider>
         <main className="w-full flex">
           <WorkerSidebar />

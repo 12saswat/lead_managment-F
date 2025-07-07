@@ -1,4 +1,5 @@
 import { LogOut, Plus, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, FileText } from "lucide-react"
+import { useParams, usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -34,7 +35,7 @@ import { Button } from "@/components/ui/button"
 const items = [
   {
     title: "Dashboard",
-    url: "dashboard",
+    url: "/worker/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -75,8 +76,9 @@ const items = [
 ]
 
 const WorkerSidebar = () => {
+  const pathname = usePathname();
   return (
-    <Sidebar collapsible="icon" side="left">
+    <Sidebar collapsible="icon" side="left" className="backdrop-blur-sm border-1 border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/90">
       <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -97,7 +99,7 @@ const WorkerSidebar = () => {
             <SidebarMenu>
               {
                 items.map(item => (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem className={`rounded-xl ${item.url === pathname ? "bg-gray-200 text-black" : "rounded"}`} key={item.title}>
                     <SidebarMenuButton asChild>
                       <Link href={item.url}>
                         <item.icon />
