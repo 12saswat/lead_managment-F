@@ -338,7 +338,7 @@ export default function AddLeadForm(): JSX.Element {
             {/* Left Column - Info Cards */}
             <div className="lg:col-span-1 space-y-6">
               {/* Quick Stats */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <Card className="bg-white/80 dark:bg-[#0F172B] backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Target className="w-5 h-5 text-blue-600" />
@@ -362,11 +362,11 @@ export default function AddLeadForm(): JSX.Element {
               </Card>
 
               {/* Tips Card */}
-              <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-lg">
+              <Card className="bg-gradient-to-br  from-blue-50 to-indigo-50 border-0 shadow-lg dark:bg-[#0F172B]">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="w-5 h-5 text-indigo-600" />
-                    Pro Tips
+                    <Users className="w-5 h-5 text-indigo-600 " />
+                  <span className="dark:text-white">Pro Tips</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -410,11 +410,11 @@ export default function AddLeadForm(): JSX.Element {
             <div className="lg:col-span-2">
   <Card 
     ref={cardRef}
-    className={`bg-white/95 backdrop-blur-sm border-0 shadow-2xl transition-all duration-300 ${
+    className={`bg-white/95 dark:bg-[#0F172B] backdrop-blur-sm border-0 shadow-2xl transition-all duration-300 ${
       success ? "ring-2 ring-green-500 ring-opacity-50" : ""
     }`}
   >
-    <CardHeader className="border-b border-gray-100 bg-gray-50/50">
+    <CardHeader className="border-b border-gray-100 bg-gray-50/50 dark:bg-[#0F172B]">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
