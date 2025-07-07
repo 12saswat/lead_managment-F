@@ -59,7 +59,7 @@ import { useParams, usePathname } from "next/navigation";
 const items = [
   {
     title: "Dashboard",
-    url: "#",
+    url: "/manager/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -74,7 +74,7 @@ const items = [
   },
   {
     title: "Bulk Lead",
-    url: "#ff",
+    url: "/leads/upload-leads-bulk/5",
     icon: Copy,
   },
   {
@@ -102,7 +102,7 @@ const items = [
 const Appsidebar = () => {
   const pathname = usePathname();
   return (
-    <Sidebar collapsible="icon" side="left" className="backdrop-blur-sm">
+    <Sidebar collapsible="icon" side="left" className=" backdrop-blur-sm border-1 border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/90">
       <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -124,7 +124,7 @@ const Appsidebar = () => {
               {
                 items.map(item=>(
                   <SidebarMenuItem
-                    className={`rounded-2xl ${item.url === pathname ? "bg-gray-200" : "rounded"}`}
+                    className={`rounded-xl ${item.url === pathname ? "bg-gray-200 text-black" : "rounded"}`}
                     key={item.title}
                   >
                   <SidebarMenuButton asChild>
