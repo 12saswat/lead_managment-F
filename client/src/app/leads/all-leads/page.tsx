@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, MessageSquare, Trash2, Edit, Filter, X } from 'lucide-react';
-
+import { useRouter } from "next/navigation";
 // Define the Lead interface
 interface Lead {
   id: string;
@@ -236,6 +236,7 @@ const ConfirmationDialog = ({
 
 // Main App component
 const App: React.FC = () => {
+  const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedWorker, setSelectedWorker] = useState<string>('All');
@@ -362,7 +363,10 @@ const App: React.FC = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
+  const editlead = (leadId: string) => {
+    // Navigate to the edit lead page
+    router.push(`/leads/update-leads/111`);
+  };
   const getPriorityBadgeColor = (priority: Lead['priority']) => {
     switch (priority) {
       case 'High':
@@ -565,8 +569,8 @@ const App: React.FC = () => {
                             {/* <button className="text-gray-400 hover:text-blue-600 transition-colors">
                               <MessageSquare size={18} />
                             </button> */}
-                            <button className="text-gray-400 hover:text-yellow-600 transition-colors">
-                              <Edit size={18} />
+                            <button onClick={()=>editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors">
+                              <Edit size={18}  />
                             </button>
                             <button
                               onClick={() => handleDeleteClick(lead.id)}
@@ -602,9 +606,9 @@ const App: React.FC = () => {
                         <p className="text-sm text-gray-500">{lead.leadInfo.company}</p>
                       </div>
                       <div className="flex space-x-2">
-                        <button className="text-gray-400 hover:text-blue-600 transition-colors">
+                        {/* <button className="text-gray-400 hover:text-blue-600 transition-colors">
                           <MessageSquare size={18} />
-                        </button>
+                        </button> */}
                         <button className="text-gray-400 hover:text-yellow-600 transition-colors">
                           <Edit size={18} />
                         </button>

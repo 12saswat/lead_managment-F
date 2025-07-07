@@ -28,32 +28,6 @@ import {
 } from "@/components/ui/dialog";
 import LeftSectionLogin from "../../(component)/LeftSectionLogin";
 import Axios from "@/lib/Axios";
-// const Axios = {
-//   post: async (url: string, data: any) => {
-//     console.log(`Mock Axios POST request to: ${url} with data:`, data);
-//     // Simulate API response based on the URL
-//     if (url === "/manager/login") {
-//       // Simulate a successful login for specific credentials
-//       if (
-//         data.email === "manager@example.com" &&
-//         data.password === "password123"
-//       ) {
-//         return { data: { success: true, msg: "Login successful!" } };
-//       } else {
-//         return { data: { success: false, msg: "Invalid credentials." } };
-//       }
-//     } else if (url === "/manager/forgot-password") {
-//       // Simulate OTP sending
-//       if (data.email === "manager@example.com") {
-//         return { data: { success: true, msg: "OTP sent to your email." } };
-//       } else {
-//         return { data: { success: false, msg: "Email not found." } };
-//       }
-//     }
-//     // Default response for unknown endpoints
-//     return { data: { success: false, msg: "Unknown API endpoint." } };
-//   },
-// };
 
 export default function ManagerLogin() {
   // State for login form
@@ -103,7 +77,7 @@ export default function ManagerLogin() {
       if (data.success) {
         toast.success("Login successful! Redirecting to dashboard...");
 
-        window.location.replace("/leads/upload-leads/12"); // Commented out for sandbox demo
+        window.location.replace("/leads/upload-leads/"); // Commented out for sandbox demo
       } else {
         // Show an error toast if login fails
         toast.error("Login failed: " + (data.msg || "Invalid credentials"));
