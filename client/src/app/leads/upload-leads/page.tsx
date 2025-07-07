@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Phone, Briefcase, ArrowUp, ArrowDown, ArrowRight, FileText, X, Loader2, Check, Upload, Building, Target, Calendar, Users } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 // TypeScript interfaces
 interface FormData {
@@ -48,6 +49,9 @@ export default function AddLeadForm(): JSX.Element {
     status: "new",
     createdBy: ""
   });
+
+
+  
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
