@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { BookOpen } from "lucide-react";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import PasswordResetForm from "../../../../../../components/passwordResetForm";
 
 
@@ -126,12 +124,6 @@ export default function ResetPasswordPage() {
                 </div>
                 <PasswordResetForm />
             </div>
-            <ToastContainer
-                position="top-right"
-                autoClose={2000}
-                hideProgressBar
-                pauseOnHover
-            />
         </div>
     );
 }
