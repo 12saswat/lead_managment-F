@@ -3,8 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Axios from "@/lib/Axios";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -362,12 +361,6 @@ export default function SignUpPage() {
           </Card>
         </div>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={2000}
-        hideProgressBar
-        pauseOnHover
-      />
     </div>
   );
 }

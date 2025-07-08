@@ -32,13 +32,4 @@ export default function ManagerLayout({
       </SidebarProvider>
     </div>
   );
-  //   return (
-  //     <SidebarProvider>
-  //       <Appsidebar />
-  //       <main className="w-full">
-  //         <Navbar />
-  //         <div className="">{children}</div>
-  //       </main>
-  //     </SidebarProvider>
-  //   );
 }
