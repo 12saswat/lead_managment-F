@@ -4,8 +4,7 @@ import { useState } from "react";
 import { Eye, EyeOff, KeyRound, Lock } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "sonner";
 
 const PasswordResetForm = () => {
     const router = useRouter();
@@ -60,6 +59,7 @@ const PasswordResetForm = () => {
                 router.push("/worker/auth/login");
             } else {
                 setError("Something went wrong. Try again.");
+                toast.error("Something went wrong. Try again.");
             }
         } catch (err) {
             console.error(err);

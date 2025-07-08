@@ -1,128 +1,76 @@
 "use client";
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, MessageSquare, Trash2, Edit, Filter, X } from 'lucide-react';
 import { useRouter } from "next/navigation";
+import axios from "@/lib/Axios";
+import Pagination from '@/../components/Pagination';
+import { toast } from 'sonner';
+
 // Define the Lead interface
 interface Lead {
   id: string;
   leadInfo: {
     name: string;
-    company: string;
+    position: string;
   };
   contact: {
     email: string;
     phone: string;
   };
-  status: 'New' | 'In Progress' | 'Qualified' | 'Closed';
-  priority: 'High' | 'Medium' | 'Low';
-  assignedTo: string | null; // Allow null for unassigned leads
+  status: 'new' | 'in-progress' | 'follow-up' | 'closed';
+  priority: 'high' | 'medium' | 'low';
+  assignedTo: string | null; // Allowed null for unassigned leads
   lastContact: string;
 }
 
-// Mock API function to simulate fetching leads
-const fetchLeads = async (): Promise<Lead[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: '1',
-          leadInfo: { name: 'John Smith', company: 'Tech Corp' },
-          contact: { email: 'john@techcorp.com', phone: '+1-555-0123' },
-          status: 'New',
-          priority: 'High',
-          assignedTo: 'Alice Johnson',
-          lastContact: '2024-01-15',
-        },
-        {
-          id: '2',
-          leadInfo: { name: 'Sarah Wilson', company: 'Design Studio' },
-          contact: { email: 'sarah@designstudio.com', phone: '+1-555-0124' },
-          status: 'In Progress',
-          priority: 'Medium',
-          assignedTo: 'Bob Davis',
-          lastContact: '2024-01-16',
-        },
-        {
-          id: '3',
-          leadInfo: { name: 'Mike Brown', company: 'Retail Chain' },
-          contact: { email: 'mike@retailchain.com', phone: '+1-555-0125' },
-          status: 'Qualified',
-          priority: 'High',
-          assignedTo: 'Carol White',
-          lastContact: '2024-01-17',
-        },
-        {
-          id: '4',
-          leadInfo: { name: 'Lisa Garcia', company: 'Manufacturing Co' },
-          contact: { email: 'lisa@manufacturing.com', phone: '+1-555-0126' },
-          status: 'New',
-          priority: 'Low',
-          assignedTo: 'David Lee',
-          lastContact: '2024-01-12',
-        },
-        {
-          id: '5',
-          leadInfo: { name: 'Tom Anderson', company: 'Consulting Firm' },
-          contact: { email: 'tom@consulting.com', phone: '+1-555-0127' },
-          status: 'Closed',
-          priority: 'Medium',
-          assignedTo: 'Alice Johnson',
-          lastContact: '2024-01-18',
-        },
-        {
-          id: '6',
-          leadInfo: { name: 'Emily Clark', company: 'Tech Solutions' },
-          contact: { email: 'emily@techsolutions.com', phone: '+1-555-0128' },
-          status: 'New',
-          priority: 'High',
-          assignedTo: 'Bob Davis',
-          lastContact: '2024-01-19',
-        },
-        {
-          id: '7',
-          leadInfo: { name: 'David Lee', company: 'Marketing Agency' },
-          contact: { email: 'david@marketing.com', phone: '+1-555-0129' },
-          status: 'In Progress',
-          priority: 'Low',
-          assignedTo: 'Carol White',
-          lastContact: '2024-01-20',
-        },
-        {
-          id: '8',
-          leadInfo: { name: 'Unassigned Lead 1', company: 'UAT Corp' },
-          contact: { email: 'unassigned1@uatcorp.com', phone: '+1-555-0130' },
-          status: 'New',
-          priority: 'High',
-          assignedTo: null,
-          lastContact: '2024-01-21',
-        },
-        {
-          id: '9',
-          leadInfo: { name: 'Unassigned Lead 2', company: 'Global Solutions' },
-          contact: { email: 'unassigned2@globalsolutions.com', phone: '+1-555-0131' },
-          status: 'In Progress',
-          priority: 'Medium',
-          assignedTo: null,
-          lastContact: '2024-01-22',
-        },
-      ]);
-    }, 500);
-  });
+// API function to simulate fetching leads
+const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, setTotalPages: (n: number) => void): Promise<Lead[]> => {
+  try {
+    const res = await axios.get("/lead/getalllead", { params: { page } });
+    const { data } = res.data;
+    if (!data || !data.leads || !data.pagination) {
+      throw new Error("Invalid response structure from server.");
+    }
+    setCurrentPage(data.pagination.currentPage);
+    setTotalPages(data.pagination.totalPages);
+    const mappedLeads: Lead[] = data.leads.map((lead: any) => ({
+      id: lead.id,
+      leadInfo: {
+        name: lead.name,
+        position: lead.position || "Unknown Position",
+      },
+      contact: {
+        email: lead.email || "No Email",
+        phone: String(lead.phoneNumber) || "No Phone Number",
+      },
+      status: lead.status || "new",
+      priority: lead.priority || "low",
+      assignedTo: lead.assignedTo || "Unassigned",
+      lastContact: new Date(lead.createdAt).toLocaleDateString("en-GB"),
+    }));
+    return mappedLeads;
+  }
+  catch (error: any) {
+    console.error("Axios error fetching leads:", error?.response || error.message);
+    throw error;
+  }
 };
 
-// Mock API function to simulate deleting a lead
+// API function to simulate deleting a lead
 const deleteLeadApi = async (leadId: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (Math.random() > 0.1) { // Simulate 10% chance of failure
-        console.log(`Successfully deleted lead with ID: ${leadId}`);
-        resolve();
-      } else {
-        console.error(`Failed to delete lead with ID: ${leadId}`);
-        reject(new Error('Failed to delete lead. Please try again.'));
-      }
-    }, 300);
-  });
+  try {
+    const res = await axios.delete(`/lead/deletelead/${leadId}`);
+    if (!res.data.success) {
+      throw new Error(res.data.response?.message || "Failed to delete lead.");
+    }
+    console.log(`Lead with ID ${leadId} deleted successfully`);
+    toast.success("Lead deleted successfully!");
+  }
+  catch (error: any) {
+    console.error(`Error deleting lead ${leadId}:`, error?.response || error.message);
+    toast.error(error?.response?.data?.message || "Failed to delete lead.");
+  }
 };
 
 // Custom Dropdown Component
@@ -234,10 +182,20 @@ const ConfirmationDialog = ({
 };
 
 
+
+
+
+
+
+
+
+
 // Main App component
 const App: React.FC = () => {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedWorker, setSelectedWorker] = useState<string>('All');
   const [assignmentFilter, setAssignmentFilter] = useState<'All' | 'Assigned' | 'Unassigned'>('All');
@@ -246,20 +204,22 @@ const App: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
 
-  // Fetch leads on component mount
+  // Fetch leads on component mount and when currentPage changes
   useEffect(() => {
     const getLeads = async () => {
       try {
-        const data = await fetchLeads();
+        setLoading(true);
+        const data = await fetchLeads(currentPage, setCurrentPage, setTotalPages);
         setLeads(data);
       } catch (err) {
-        setError('An unexpected error occurred.');
+        setError('An unexpected error occurred while fetching leads.');
       } finally {
         setLoading(false);
       }
     };
     getLeads();
-  }, []);
+  }, [currentPage]);
+
 
   // Extract unique workers from the leads data
   const workers = useMemo(() => {
@@ -275,22 +235,25 @@ const App: React.FC = () => {
   // Filter leads based on search term, assignment status, and selected worker
   const filteredLeads = useMemo(() => {
     let currentLeads = leads;
-
-    // Apply assignment filter
-    if (assignmentFilter === 'Assigned') {
-      currentLeads = currentLeads.filter((lead) => lead.assignedTo !== null);
-    } else if (assignmentFilter === 'Unassigned') {
-      currentLeads = currentLeads.filter((lead) => lead.assignedTo === null);
+    if (assignmentFilter === 'Unassigned') {
+      currentLeads = currentLeads.filter((lead) => lead.assignedTo === "Unassigned");
+    }
+    else if (assignmentFilter === 'All') {
+      currentLeads = currentLeads;
+    }
+    else {
+      currentLeads = currentLeads.filter((lead) => lead.assignedTo !== "Unassigned");
     }
 
     // Apply worker filter (only if assignment filter is 'All' or 'Assigned')
-    if (selectedWorker !== 'All' && assignmentFilter !== 'Unassigned') {
-      currentLeads = currentLeads.filter((lead) => lead.assignedTo === selectedWorker);
-    } else if (selectedWorker !== 'All' && assignmentFilter === 'Unassigned') {
-        // If 'Unassigned' is selected for assignment, and a specific worker is also selected,
-        // no leads will match, so we clear the results.
-        currentLeads = [];
-    }
+    // if (selectedWorker !== 'All' && assignmentFilter !== 'Unassigned') {
+    //   currentLeads = currentLeads.filter((lead) => lead.assignedTo === selectedWorker);
+    // }
+    // else if (selectedWorker !== 'All' && assignmentFilter === 'Unassigned') {
+    //   // If 'Unassigned' is selected for assignment, and a specific worker is also selected,
+    //   // no leads will match, so we clear the results.
+    //   currentLeads = [];
+    // }
 
 
     // Apply search term filter
@@ -299,7 +262,7 @@ const App: React.FC = () => {
       currentLeads = currentLeads.filter(
         (lead) =>
           lead.leadInfo.name.toLowerCase().includes(lowerCaseSearchTerm) ||
-          lead.leadInfo.company.toLowerCase().includes(lowerCaseSearchTerm) ||
+          lead.leadInfo.position.toLowerCase().includes(lowerCaseSearchTerm) ||
           lead.contact.email.toLowerCase().includes(lowerCaseSearchTerm)
       );
     }
@@ -351,29 +314,30 @@ const App: React.FC = () => {
 
   const getStatusBadgeColor = (status: Lead['status']) => {
     switch (status) {
-      case 'New':
+      case 'new':
         return 'bg-blue-100 text-blue-800';
-      case 'In Progress':
+      case 'in-progress':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Qualified':
+      case 'follow-up':
         return 'bg-green-100 text-green-800';
-      case 'Closed':
+      case 'closed':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
+
   const editlead = (leadId: string) => {
-    // Navigate to the edit lead page
-    router.push(`/leads/update-leads/111`);
+    router.push(`/leads/update-leads/${leadId}`);
   };
+
   const getPriorityBadgeColor = (priority: Lead['priority']) => {
     switch (priority) {
-      case 'High':
+      case 'high':
         return 'bg-red-100 text-red-800';
-      case 'Medium':
+      case 'medium':
         return 'bg-orange-100 text-orange-800';
-      case 'Low':
+      case 'low':
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -417,6 +381,12 @@ const App: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lead Management</h1>
               <p className="text-gray-600 mt-1 dark:text-white">Manage and track all your leads</p>
             </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-800 cursor-pointer"
+            >
+              Refresh
+            </button>
           </div>
         </div>
       </header>
@@ -431,7 +401,7 @@ const App: React.FC = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Search leads by name, company, or email..."
+                placeholder="Search leads by name, position, or email..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 value={searchTerm}
                 onChange={handleSearchChange}
@@ -486,9 +456,9 @@ const App: React.FC = () => {
                     key={worker}
                     onClick={() => handleWorkerSelect(worker)}
                     className={selectedWorker === worker ? 'bg-blue-50 text-blue-600' : ''}
-                    // Disable specific worker selection if 'Unassigned' is the primary filter
-                    // and the current worker is not 'All' or if it's 'All' but assignment filter is 'Unassigned'
-                    // This is handled in filteredLeads logic, so just allow selection here.
+                  // Disable specific worker selection if 'Unassigned' is the primary filter
+                  // and the current worker is not 'All' or if it's 'All' but assignment filter is 'Unassigned'
+                  // This is handled in filteredLeads logic, so just allow selection here.
                   >
                     {worker === null ? 'Unassigned' : worker}
                   </DropdownItem>
@@ -500,11 +470,18 @@ const App: React.FC = () => {
 
         {/* Leads Section */}
         <div className="bg-white dark:bg-[#0F172B] rounded-lg shadow-sm border">
-          <div className="p-4 sm:p-6 border-b">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              All Leads ({filteredLeads.length})
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Complete list of leads in your system</p>
+          <div className="flex justify-between gap-5 p-4 sm:p-6 border-b">
+            <div className='pr-2'>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                All Leads ({filteredLeads.length})
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Complete list of leads in your system</p>
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
 
           {/* Desktop Table View */}
@@ -542,7 +519,7 @@ const App: React.FC = () => {
                       <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium dark:text-white text-gray-900">{lead.leadInfo.name}</div>
-                          <div className="text-sm text-gray-500">{lead.leadInfo.company}</div>
+                          <div className="text-sm text-gray-500">{lead.leadInfo.position}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-white">{lead.contact.email}</div>
@@ -566,11 +543,8 @@ const App: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center justify-between space-x-2">
-                            {/* <button className="text-gray-400 hover:text-blue-600 transition-colors">
-                              <MessageSquare size={18} />
-                            </button> */}
-                            <button onClick={()=>editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors">
-                              <Edit size={18}  />
+                            <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors">
+                              <Edit size={18} />
                             </button>
                             <button
                               onClick={() => handleDeleteClick(lead.id)}
@@ -602,8 +576,8 @@ const App: React.FC = () => {
                   <div key={lead.id} className="p-4 sm:p-6">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">{lead.leadInfo.name}</h3>
-                        <p className="text-sm text-gray-500">{lead.leadInfo.company}</p>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">{lead.leadInfo.name}</h3>
+                        <p className="text-sm text-gray-500">{lead.leadInfo.position}</p>
                       </div>
                       <div className="flex space-x-2">
                         {/* <button className="text-gray-400 hover:text-blue-600 transition-colors">
