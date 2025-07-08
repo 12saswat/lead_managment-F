@@ -4,38 +4,45 @@ import { useState, useRef, useEffect, JSX } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, Briefcase, ArrowUp, ArrowDown, ArrowRight, FileText, X, Loader2, Check, Upload, Building, Target, Calendar, Users } from "lucide-react";
-import { usePathname } from "next/navigation"; // To get the ID from the URL
+import {
+  User,
+  Mail,
+  Phone,
+  Briefcase,
+  ArrowUp,
+  ArrowDown,
+  ArrowRight,
+  FileText,
+  X,
+  Loader2,
+  Check,
+  Upload,
+  Building,
+  Target,
+  Calendar,
+  Users,
+} from "lucide-react";
+import { usePathname } from "next/navigation";
+import Axios from "@/lib/Axios";
 
-// TypeScript interfaces (Updated for Update Lead)
+// TypeScript interfaces
 interface FormData {
-  name: string;
-  email: string;
-  phoneNumber: string;
-  category: string; // Corresponds to 'ObjectId'
-  position: string;
-  leadSource: string;
-  notes: string;
-  status: "new" | "in-progress" | "follow-up" | "closed"; // Updated status enum values
-  priority: "high" | "medium" | "low";
-  followUpDates: string[]; // Array of date strings (e.g., ISO dates)
-  lastContact: string; // Date string (e.g., ISO date)
-  documents: File | null; // file || null
-}
-
-interface FormErrors {
-  [key: string]: string;
-}
-
-type PriorityType = "high" | "medium" | "low";
-
-// Mock API data structure for a lead
-interface LeadData {
-  _id: string; // Assuming an ID for the lead
   name: string;
   email: string;
   phoneNumber: string;
@@ -47,17 +54,41 @@ interface LeadData {
   priority: "high" | "medium" | "low";
   followUpDates: string[];
   lastContact: string;
-  documents: string | null; // For fetched data, this might be a URL or file name, not the File object itself
-  createdAt: string; // Original creation date
-  createdBy: string; // Original creator
+  documents: File | null;
+}
+
+interface FormErrors {
+  [key: string]: string;
+}
+
+type PriorityType = "high" | "medium" | "low";
+
+// API response structure
+interface LeadApiResponse {
+  _id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  category: string;
+  position?: string;
+  leadSource?: string;
+  notes?: string;
+  status: "new" | "in-progress" | "follow-up" | "closed";
+  priority: "high" | "medium" | "low";
+  followUpDates: string[];
+  lastContact: string;
+  documents?: string[];
+  campaignSent?: string[];
+  conversations?: string[];
+  isDeleted: boolean;
+  createdAt: string;
 }
 
 export default function UpdateLeadForm(): JSX.Element {
   const pathname = usePathname();
-  // Extract leadId from the URL path, e.g., /update-lead/123 -> 123
-  const leadId = pathname.split('/').pop();
+  const leadId = pathname.split("/").pop();
 
-  // Form state with proper typing
+  // Form state
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -74,67 +105,78 @@ export default function UpdateLeadForm(): JSX.Element {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isFetchingLead, setIsFetchingLead] = useState<boolean>(true); // New state for fetching initial lead data
+  const [isFetchingLead, setIsFetchingLead] = useState<boolean>(true);
   const [success, setSuccess] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const formRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mock API Call to fetch lead data
+  // Fetch lead data
   const fetchLeadData = async (id: string) => {
     setIsFetchingLead(true);
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    setErrors({});
 
-    // Mock data for a specific lead
-    const mockLead: LeadData = {
-      _id: id,
-      name: "John Doe",
-      email: "john.doe@example.com",
-      phoneNumber: "123-456-7890",
-      category: "IT",
-      position: "Senior Developer",
-      leadSource: "Website",
-      notes: "Interested in enterprise solutions. Follow up next week.",
-      status: "in-progress", // Pre-populated status
-      priority: "high", // Pre-populated priority
-      followUpDates: ["2025-07-15T09:00:00Z", "2025-07-22T14:30:00Z"],
-      lastContact: "2025-07-01T10:00:00Z",
-      documents: null, // Simulate no document initially or a URL if one exists
-      createdAt: "2025-06-20T08:00:00Z",
-      createdBy: "admin_user_id",
-    };
+    if (!id) {
+      setErrors({ submit: "No lead ID found" });
+      setIsFetchingLead(false);
+      return;
+    }
 
-    // Populate form data with fetched lead data
-    setFormData({
-      name: mockLead.name,
-      email: mockLead.email,
-      phoneNumber: mockLead.phoneNumber,
-      category: mockLead.category,
-      position: mockLead.position,
-      leadSource: mockLead.leadSource,
-      notes: mockLead.notes,
-      priority: mockLead.priority,
-      documents: null, // Documents are handled separately, so start with null for File object
-      status: mockLead.status,
-      followUpDates: mockLead.followUpDates,
-      lastContact: mockLead.lastContact,
-    });
-    setIsFetchingLead(false);
+    try {
+      const response = await Axios.get(`/lead/getlead/${id}`);
+
+      if (response.data.success && response.data.data) {
+        const leadData: LeadApiResponse = response.data.data;
+
+        // Format date for datetime-local input
+        const formatDateForInput = (dateString: string) => {
+          if (!dateString) return "";
+          try {
+            const date = new Date(dateString);
+            return date.toISOString().slice(0, 16);
+          } catch {
+            return "";
+          }
+        };
+
+        // Populate form with fetched data
+        setFormData({
+          name: leadData.name || "",
+          email: leadData.email || "",
+          phoneNumber: leadData.phoneNumber?.toString() || "",
+          category: leadData.category || "",
+          position: leadData.position || "",
+          leadSource: leadData.leadSource || "",
+          notes: leadData.notes || "",
+          priority: leadData.priority || "medium",
+          status: leadData.status || "new",
+          followUpDates: leadData.followUpDates || [],
+          lastContact: formatDateForInput(leadData.lastContact),
+          documents: null, // Reset file input
+        });
+      } else {
+        setErrors({ submit: "Failed to fetch lead data" });
+      }
+    } catch (error: any) {
+      console.error("Error fetching lead data:", error);
+      setErrors({
+        submit: error.response?.data?.message || "Failed to fetch lead data",
+      });
+    } finally {
+      setIsFetchingLead(false);
+    }
   };
 
-  // Fetch lead data on component mount or when leadId changes
+  // Fetch lead data on component mount
   useEffect(() => {
     if (leadId) {
       fetchLeadData(leadId);
     } else {
-      // Handle case where no leadId is provided (e.g., redirect or show error)
-      console.error("No lead ID provided for update.");
+      setErrors({ submit: "No lead ID provided" });
       setIsFetchingLead(false);
     }
   }, [leadId]);
-
 
   // Animation on mount
   useEffect(() => {
@@ -146,7 +188,8 @@ export default function UpdateLeadForm(): JSX.Element {
         if (formRef.current) {
           formRef.current.style.opacity = "1";
           formRef.current.style.transform = "translateY(0)";
-          formRef.current.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+          formRef.current.style.transition =
+            "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
         }
       }, 100);
 
@@ -164,17 +207,14 @@ export default function UpdateLeadForm(): JSX.Element {
       newErrors.name = "Name must be at least 2 characters";
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
     if (!formData.category) {
       newErrors.category = "Please select a category";
     }
 
-    if (formData.phoneNumber && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
+    if (
+      formData.phoneNumber &&
+      !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phoneNumber.replace(/\s/g, ""))
+    ) {
       newErrors.phoneNumber = "Please enter a valid phone number";
     }
 
@@ -183,34 +223,40 @@ export default function UpdateLeadForm(): JSX.Element {
   };
 
   // Handle input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ): void => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+
+    // Don't allow email changes
+    if (name === "email") return;
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
 
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ""
+        [name]: "",
       }));
     }
   };
 
   // Handle select changes
   const handleSelectChange = (field: keyof FormData, value: string): void => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value as any // Type assertion because `value` might not perfectly match enum types for status/priority
+      [field]: value as any,
     }));
 
     // Clear error when user selects
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ""
+        [field]: "",
       }));
     }
   };
@@ -220,34 +266,40 @@ export default function UpdateLeadForm(): JSX.Element {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const maxSize = 5 * 1024 * 1024; // 5MB
-      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+      const allowedTypes = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ];
 
       if (file.size > maxSize) {
-        setErrors(prev => ({
+        setErrors((prev) => ({
           ...prev,
-          document: "File size must be less than 5MB"
+          documents: "File size must be less than 5MB",
         }));
         return;
       }
 
       if (!allowedTypes.includes(file.type)) {
-        setErrors(prev => ({
+        setErrors((prev) => ({
           ...prev,
-          document: "Please upload a PDF, DOC, or XLS file"
+          documents: "Please upload a PDF, DOC, or XLS file",
         }));
         return;
       }
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        documents: file
+        documents: file,
       }));
 
       // Clear error
-      if (errors.document) {
-        setErrors(prev => ({
+      if (errors.documents) {
+        setErrors((prev) => ({
           ...prev,
-          document: ""
+          documents: "",
         }));
       }
     }
@@ -255,9 +307,9 @@ export default function UpdateLeadForm(): JSX.Element {
 
   // Remove uploaded file
   const removeFile = (): void => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      documents: null
+      documents: null,
     }));
 
     if (fileInputRef.current) {
@@ -265,95 +317,119 @@ export default function UpdateLeadForm(): JSX.Element {
     }
   };
 
+  // Handle follow-up dates input
+  const handleFollowUpDatesChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    const dates = value
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    // Convert to ISO strings
+    const isoDateStrings = dates.map((dateStr) => {
+      try {
+        return new Date(dateStr).toISOString();
+      } catch {
+        return dateStr; // Keep original if conversion fails
+      }
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      followUpDates: isoDateStrings,
+    }));
+  };
+
   // Handle form submission
   const handleSubmit = async (): Promise<void> => {
-    if (!validateForm()) {
-      // Focus on first error field
-      const firstErrorField = Object.keys(errors)[0];
-      const errorElement = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement;
-      if (errorElement) {
-        errorElement.focus();
-      }
-      return;
-    }
+    // if (!validateForm()) {
+    //   const firstErrorField = Object.keys(errors)[0];
+    //   const errorElement = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement;
+    //   if (errorElement) {
+    //     errorElement.focus();
+    //   }
+    //   return;
+    // }
 
     setIsLoading(true);
+    setErrors({});
 
     try {
-      // Prepare submission data (matching your provided request body for Update Lead)
-      const submissionData: Omit<FormData, "documents"> & { documents: File | string | null } = { // documents can be File or string (for existing URL)
-        name: formData.name,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
-        category: formData.category,
-        position: formData.position,
-        leadSource: formData.leadSource,
-        notes: formData.notes,
-        status: formData.status,
-        priority: formData.priority,
-        followUpDates: formData.followUpDates,
-        lastContact: formData.lastContact,
-        documents: formData.documents // If it's a new file, it's the File object. If it's an existing file not changed, it would be its URL/name.
-                                      // For simplicity in this mock, we're sending the File object. In a real app, you'd handle existing file URLs differently.
-      };
+      // Prepare form data for submission
+      const submitFormData = new FormData();
 
-      // Create FormData for file upload (if documents exist)
-      const payload = new FormData();
-      for (const key in submissionData) {
-        if (key === "documents" && submissionData.documents) {
-            payload.append(key, submissionData.documents);
-        } else if (Array.isArray((submissionData as any)[key])) {
-            payload.append(key, JSON.stringify((submissionData as any)[key])); // Stringify arrays
-        }
-        else if ((submissionData as any)[key] !== null) {
-            payload.append(key, (submissionData as any)[key]);
-        }
+      // Add all form fields except email
+      submitFormData.append("name", formData.name);
+      submitFormData.append("phoneNumber", formData.phoneNumber);
+      // submitFormData.append('category', formData.category);
+      submitFormData.append("position", formData.position);
+      submitFormData.append("leadSource", formData.leadSource);
+      submitFormData.append("notes", formData.notes);
+      submitFormData.append("status", formData.status);
+      submitFormData.append("priority", formData.priority);
+
+      // Convert lastContact to ISO string if provided
+      if (formData.lastContact) {
+        submitFormData.append(
+          "lastContact",
+          new Date(formData.lastContact).toISOString()
+        );
       }
 
-      console.log("Submitting payload:", submissionData); // Log the object without FormData issues
-
-      // Simulate API call for PUT /updateleads/:id
-      const response = await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (leadId === "mock-fail-id") { // Example of a mock failure
-            reject(new Error("Failed to update lead (mock error)"));
-          } else {
-            console.log(`Mock PUT request to /api/updateleads/${leadId} with data:`, submissionData);
-            resolve({ status: 200, message: "Lead updated successfully!" });
-          }
-        }, 2000);
-      });
-
-      console.log("Lead update successful:", response);
-      setSuccess(true);
-
-      // Add success animation
-      if (cardRef.current) {
-        cardRef.current.style.transform = "scale(1.02)";
-        cardRef.current.style.transition = "transform 0.2s ease-out";
-        setTimeout(() => {
-          if (cardRef.current) {
-            cardRef.current.style.transform = "scale(1)";
-          }
-        }, 200);
+      // Add follow-up dates as JSON string
+      if (formData.followUpDates.length > 0) {
+        submitFormData.append(
+          "followUpDates",
+          JSON.stringify(formData.followUpDates)
+        );
       }
 
-      // Reset form after success (optional for update, usually you'd show a success message and keep data)
-      const resetTimer = setTimeout(() => {
-        setSuccess(false);
-        setErrors({});
-        // Re-fetch lead data to show latest state, or keep existing data
-        if (leadId) {
-          fetchLeadData(leadId);
-        }
-      }, 3000); // Wait 3 seconds then clear success message and potentially re-fetch
+      // Add document if uploaded
+      // if (formData.documents) {
+      //   submitFormData.append('documents', formData.documents);
+      // }
 
+      // Make API call
+      const response = await Axios.put(
+        `/lead/updateleads/${leadId}`,
+        submitFormData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setSuccess(true);
+
+        // Success animation
+        if (cardRef.current) {
+          cardRef.current.style.transform = "scale(1.02)";
+          cardRef.current.style.transition = "transform 0.2s ease-out";
+          setTimeout(() => {
+            if (cardRef.current) {
+              cardRef.current.style.transform = "scale(1)";
+            }
+          }, 200);
+        }
+
+        // Reset success state after 3 seconds
+        setTimeout(() => {
+          setSuccess(false);
+        }, 3000);
+      } else {
+        setErrors({ submit: response.data.message || "Failed to update lead" });
+      }
     } catch (error: any) {
       console.error("Error updating lead:", error);
-      setErrors(prev => ({
-        ...prev,
-        submit: error.message || "Failed to update lead. Please try again."
-      }));
+      setErrors({
+        submit:
+          error.response?.data?.message ||
+          "Failed to update lead. Please try again....",
+      });
 
       // Error animation
       if (cardRef.current) {
@@ -369,8 +445,12 @@ export default function UpdateLeadForm(): JSX.Element {
     }
   };
 
-  // Priority icon component (unchanged)
-  const PriorityIcon = ({ priority }: { priority: PriorityType }): JSX.Element => {
+  // Priority icon component
+  const PriorityIcon = ({
+    priority,
+  }: {
+    priority: PriorityType;
+  }): JSX.Element => {
     switch (priority) {
       case "high":
         return <ArrowUp className="w-4 h-4 text-red-500" />;
@@ -383,12 +463,16 @@ export default function UpdateLeadForm(): JSX.Element {
     }
   };
 
-  // Priority badge component (unchanged)
-  const PriorityBadge = ({ priority }: { priority: PriorityType }): JSX.Element => {
+  // Priority badge component
+  const PriorityBadge = ({
+    priority,
+  }: {
+    priority: PriorityType;
+  }): JSX.Element => {
     const colors = {
       high: "bg-red-100 text-red-800 border-red-200",
       medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      low: "bg-green-100 text-green-800 border-green-200"
+      low: "bg-green-100 text-green-800 border-green-200",
     };
 
     return (
@@ -399,32 +483,56 @@ export default function UpdateLeadForm(): JSX.Element {
     );
   };
 
+  // Loading state
   if (isFetchingLead) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-6 sm:py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-        <span className="ml-3 text-lg text-gray-700">Loading lead data...</span>
+        <div className="flex items-center">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+          <span className="ml-3 text-lg text-gray-700">
+            Loading lead data...
+          </span>
+        </div>
       </div>
     );
   }
+
+  // Format follow-up dates for display
+  const formatFollowUpDatesForDisplay = () => {
+    return formData.followUpDates
+      .map((dateStr) => {
+        try {
+          return new Date(dateStr).toISOString().slice(0, 10);
+        } catch {
+          return dateStr;
+        }
+      })
+      .join(", ");
+  };
 
   return (
     <div>
       <style jsx>{`
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          25% {
+            transform: translateX(-5px);
+          }
+          75% {
+            transform: translateX(5px);
+          }
         }
       `}</style>
-
       <div
         ref={formRef}
         className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-6 sm:py-12 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 -my-7 gap-8">
-            {/* Left Column - Info Cards (unchanged) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Info Cards */}
             <div className="lg:col-span-1 space-y-6">
               {/* Quick Stats */}
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
@@ -445,7 +553,12 @@ export default function UpdateLeadForm(): JSX.Element {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Converted</span>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">8</Badge>
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800"
+                    >
+                      8
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -460,10 +573,22 @@ export default function UpdateLeadForm(): JSX.Element {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-sm text-gray-700">
-                    <p className="mb-2">• <strong>High Priority:</strong> Follow up within 24 hours</p>
-                    <p className="mb-2">• <strong>Lead Source:</strong> Track where your best leads come from</p>
-                    <p className="mb-2">• <strong>Documentation:</strong> Upload relevant files for context</p>
-                    <p>• <strong>Notes:</strong> Add detailed information for better follow-up</p>
+                    <p className="mb-2">
+                      • <strong>High Priority:</strong> Follow up within 24
+                      hours
+                    </p>
+                    <p className="mb-2">
+                      • <strong>Lead Source:</strong> Track where your best
+                      leads come from
+                    </p>
+                    <p className="mb-2">
+                      • <strong>Documentation:</strong> Upload relevant files
+                      for context
+                    </p>
+                    <p>
+                      • <strong>Notes:</strong> Add detailed information for
+                      better follow-up
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -482,10 +607,16 @@ export default function UpdateLeadForm(): JSX.Element {
                     <div>
                       <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <Building className="w-6 h-6 text-blue-600" />
-                        Update Lead {leadId && <span className="text-gray-500 text-base">(ID: {leadId})</span>}
+                        Update Lead
+                        {leadId && (
+                          <span className="text-gray-500 text-base">
+                            (ID: {leadId})
+                          </span>
+                        )}
                       </CardTitle>
                       <CardDescription className="text-gray-600 mt-1">
-                        Modify the details of an existing prospect in your sales pipeline.
+                        Modify the details of an existing prospect in your sales
+                        pipeline.
                       </CardDescription>
                     </div>
                     <PriorityBadge priority={formData.priority} />
@@ -499,8 +630,12 @@ export default function UpdateLeadForm(): JSX.Element {
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
                         <Check className="w-5 h-5 text-green-600" />
                         <div>
-                          <p className="font-medium text-green-800">Lead updated successfully!</p>
-                          <p className="text-sm text-green-600">The form will refresh with the latest data.</p>
+                          <p className="font-medium text-green-800">
+                            Lead updated successfully!
+                          </p>
+                          <p className="text-sm text-green-600">
+                            Your changes have been saved.
+                          </p>
                         </div>
                       </div>
                     )}
@@ -509,12 +644,14 @@ export default function UpdateLeadForm(): JSX.Element {
                     {errors.submit && (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
                         <X className="w-5 h-5 text-red-600" />
-                        <p className="font-medium text-red-800">{errors.submit}</p>
+                        <p className="font-medium text-red-800">
+                          {errors.submit}
+                        </p>
                       </div>
                     )}
 
-                    {/* Horizontal Form Layout */}
-                    <div className="grid grid-cols-1 -my-7 lg:grid-cols-3 gap-6">
+                    {/* Form Layout */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       {/* Column 1 - Contact Information */}
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
@@ -523,7 +660,10 @@ export default function UpdateLeadForm(): JSX.Element {
 
                         {/* Name */}
                         <div className="space-y-2">
-                          <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="name"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Full Name <span className="text-red-500">*</span>
                           </Label>
                           <div className="relative">
@@ -535,7 +675,11 @@ export default function UpdateLeadForm(): JSX.Element {
                               placeholder="Full name"
                               value={formData.name}
                               onChange={handleInputChange}
-                              className={`pl-10 ${errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                              className={`pl-10 ${
+                                errors.name
+                                  ? "border-red-500 focus-visible:ring-red-500"
+                                  : ""
+                              }`}
                               disabled={isLoading}
                             />
                           </div>
@@ -547,10 +691,13 @@ export default function UpdateLeadForm(): JSX.Element {
                           )}
                         </div>
 
-                        {/* Email */}
+                        {/* Email - Read Only */}
                         <div className="space-y-2">
-                          <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                            Email <span className="text-red-500">*</span>
+                          <Label
+                            htmlFor="email"
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Email (Read Only)
                           </Label>
                           <div className="relative">
                             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -558,24 +705,20 @@ export default function UpdateLeadForm(): JSX.Element {
                               id="email"
                               name="email"
                               type="email"
-                              placeholder="Email address"
                               value={formData.email}
-                              onChange={handleInputChange}
-                              className={`pl-10 ${errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                              disabled={isLoading}
+                              className="pl-10 bg-gray-50 cursor-not-allowed"
+                              disabled={true}
+                              readOnly
                             />
                           </div>
-                          {errors.email && (
-                            <p className="text-sm text-red-600 flex items-center gap-1">
-                              <X className="w-3 h-3" />
-                              {errors.email}
-                            </p>
-                          )}
                         </div>
 
                         {/* Phone */}
                         <div className="space-y-2">
-                          <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="phoneNumber"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Phone
                           </Label>
                           <div className="relative">
@@ -587,7 +730,11 @@ export default function UpdateLeadForm(): JSX.Element {
                               placeholder="Phone number"
                               value={formData.phoneNumber}
                               onChange={handleInputChange}
-                              className={`pl-10 ${errors.phoneNumber ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                              className={`pl-10 ${
+                                errors.phoneNumber
+                                  ? "border-red-500 focus-visible:ring-red-500"
+                                  : ""
+                              }`}
                               disabled={isLoading}
                             />
                           </div>
@@ -608,7 +755,10 @@ export default function UpdateLeadForm(): JSX.Element {
 
                         {/* Position */}
                         <div className="space-y-2">
-                          <Label htmlFor="position" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="position"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Position
                           </Label>
                           <Input
@@ -623,9 +773,9 @@ export default function UpdateLeadForm(): JSX.Element {
                         </div>
 
                         {/* Category */}
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                           <Label className="text-sm font-medium text-gray-700">
-                            Industry <span className="text-red-500">*</span>
+                            Category <span className="text-red-500">*</span>
                           </Label>
                           <Select
                             value={formData.category}
@@ -650,11 +800,14 @@ export default function UpdateLeadForm(): JSX.Element {
                               {errors.category}
                             </p>
                           )}
-                        </div>
+                        </div> */}
 
                         {/* Lead Source */}
                         <div className="space-y-2">
-                          <Label htmlFor="leadSource" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="leadSource"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Source
                           </Label>
                           <Input
@@ -675,7 +828,9 @@ export default function UpdateLeadForm(): JSX.Element {
                           </Label>
                           <Select
                             value={formData.status}
-                            onValueChange={(value: string) => handleSelectChange("status", value)}
+                            onValueChange={(value: string) =>
+                              handleSelectChange("status", value)
+                            }
                             disabled={isLoading}
                           >
                             <SelectTrigger>
@@ -683,8 +838,12 @@ export default function UpdateLeadForm(): JSX.Element {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="new">New</SelectItem>
-                              <SelectItem value="in-progress">In Progress</SelectItem>
-                              <SelectItem value="follow-up">Follow Up</SelectItem>
+                              <SelectItem value="in-progress">
+                                In Progress
+                              </SelectItem>
+                              <SelectItem value="follow-up">
+                                Follow Up
+                              </SelectItem>
                               <SelectItem value="closed">Closed</SelectItem>
                             </SelectContent>
                           </Select>
@@ -704,7 +863,12 @@ export default function UpdateLeadForm(): JSX.Element {
                           </Label>
                           <Select
                             value={formData.priority}
-                            onValueChange={(value: string) => handleSelectChange("priority", value as PriorityType)}
+                            onValueChange={(value: string) =>
+                              handleSelectChange(
+                                "priority",
+                                value as PriorityType
+                              )
+                            }
                             disabled={isLoading}
                           >
                             <SelectTrigger>
@@ -738,39 +902,45 @@ export default function UpdateLeadForm(): JSX.Element {
 
                         {/* Last Contact */}
                         <div className="space-y-2">
-                          <Label htmlFor="lastContact" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="lastContact"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Last Contact Date
                           </Label>
                           <Input
                             id="lastContact"
                             name="lastContact"
-                            type="datetime-local" // Using datetime-local for ISO string representation
-                            value={formData.lastContact ? new Date(formData.lastContact).toISOString().slice(0, 16) : ""} // Format for input
+                            type="datetime-local"
+                            value={formData.lastContact}
                             onChange={handleInputChange}
                             disabled={isLoading}
                           />
                         </div>
 
-                        {/* Follow Up Dates (simplified for input, in real app consider a date picker with multiple selections) */}
+                        {/* Follow Up Dates */}
                         <div className="space-y-2">
-                          <Label htmlFor="followUpDates" className="text-sm font-medium text-gray-700">
-                            Follow Up Dates (comma-separated)
+                          <Label
+                            htmlFor="followUpDates"
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Follow Up Dates
                           </Label>
                           <Input
                             id="followUpDates"
                             name="followUpDates"
                             type="text"
                             placeholder="YYYY-MM-DD, YYYY-MM-DD"
-                            value={formData.followUpDates.map(d => new Date(d).toISOString().slice(0, 10)).join(', ')}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              followUpDates: e.target.value.split(',').map(s => s.trim()).filter(Boolean).map(s => new Date(s).toISOString())
-                            }))}
+                            value={formatFollowUpDatesForDisplay()}
+                            onChange={handleFollowUpDatesChange}
                             disabled={isLoading}
                           />
-                          <p className="text-xs text-gray-500">Enter dates as YYYY-MM-DD, separated by commas.</p>
+                          <p className="text-xs text-gray-500">
+                            Enter dates as YYYY-MM-DD, separated by commas.
+                          </p>
                         </div>
 
+                        {/*
 
                         {/* Document Upload */}
                         <div className="space-y-2">
@@ -785,7 +955,9 @@ export default function UpdateLeadForm(): JSX.Element {
                               <div className="flex flex-col items-center justify-center pt-3 pb-4">
                                 <Upload className="w-6 h-6 text-gray-400 mb-1 group-hover:text-gray-500 transition-colors" />
                                 <p className="text-xs text-gray-500 text-center">
-                                  <span className="font-semibold">Click to upload</span>
+                                  <span className="font-semibold">
+                                    Click to upload
+                                  </span>
                                 </p>
                               </div>
                               <Input
@@ -824,7 +996,10 @@ export default function UpdateLeadForm(): JSX.Element {
 
                         {/* Notes */}
                         <div className="space-y-2">
-                          <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="notes"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Notes
                           </Label>
                           <Textarea
