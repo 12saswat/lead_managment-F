@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, BookOpen } from "lucide-react";
 import { Eye, EyeOff } from "lucide-react";
-import { toast, ToastContainer } from "react-toastify";
+import { toast} from "sonner";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import Link from "next/link";
@@ -306,12 +306,6 @@ export default function WorkerLogin() {
           </div>
         )}
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={2000}
-        hideProgressBar
-        pauseOnHover
-      />
     </div>
   );
 }
