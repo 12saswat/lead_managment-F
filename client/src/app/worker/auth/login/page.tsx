@@ -51,9 +51,7 @@ export default function WorkerLogin() {
 
     setIsLoading(true);
     try {
-      await Axios.post("/worker/login", formData, {
-        withCredentials: true,
-      });
+      await Axios.post("/worker/login", formData);
 
       toast.success("Login successful!");
       setTimeout(() => {
