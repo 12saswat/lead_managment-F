@@ -79,12 +79,12 @@ const items = [
   },
   {
     title: "Categories",
-    url: "#",
+    url: "/manager/category",
     icon: Layers,
   },
   {
     title: "Assignments",
-    url: "#",
+    url: "/manager/assignment",
     icon: Briefcase,
   },
   {
@@ -108,7 +108,7 @@ const Appsidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/">
-                <Image src="/vercel.svg" alt="logo" width={20} height={20} />
+                <Image src="/Indibus.jpg" alt="logo" width={30} height={30} className="rounded-2xl" />
                 <span>Rahul Kumar</span>
               </Link>
             </SidebarMenuButton>
