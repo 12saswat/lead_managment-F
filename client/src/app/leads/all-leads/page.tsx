@@ -20,7 +20,7 @@ interface Lead {
   };
   status: 'new' | 'in-progress' | 'follow-up' | 'closed';
   priority: 'high' | 'medium' | 'low';
-  assignedTo: string | null; // Allowed null for unassigned leads
+  assignedTo: {name:string | null}; // Allowed null for unassigned leads
   lastContact: string;
 }
 
@@ -34,6 +34,7 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
     }
     setCurrentPage(data.pagination.currentPage);
     setTotalPages(data.pagination.totalPages);
+    console.log("asd;kfmasd>>>",data.leads);
     const mappedLeads: Lead[] = data.leads.map((lead: any) => ({
       id: lead.id,
       leadInfo: {
@@ -46,9 +47,11 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
       },
       status: lead.status || "new",
       priority: lead.priority || "low",
-      assignedTo: lead.assignedTo || "Unassigned",
+      assignedTo: lead.assignedTo || {name:"Unassigned"},
       lastContact: new Date(lead.createdAt).toLocaleDateString("en-GB"),
     }));
+    console.log("Map data >>>",mappedLeads);
+    
     return mappedLeads;
   }
   catch (error: any) {
@@ -181,15 +184,6 @@ const ConfirmationDialog = ({
   );
 };
 
-
-
-
-
-
-
-
-
-
 // Main App component
 const App: React.FC = () => {
   const router = useRouter();
@@ -225,8 +219,8 @@ const App: React.FC = () => {
   const workers = useMemo(() => {
     const assignedToNames = new Set<string>();
     leads.forEach((lead) => {
-      if (lead.assignedTo) {
-        assignedToNames.add(lead.assignedTo);
+      if (lead.assignedTo.name) {
+        assignedToNames.add(lead.assignedTo.name);
       }
     });
     return ['All', ...Array.from(assignedToNames).sort()];
@@ -236,24 +230,22 @@ const App: React.FC = () => {
   const filteredLeads = useMemo(() => {
     let currentLeads = leads;
     if (assignmentFilter === 'Unassigned') {
-      currentLeads = currentLeads.filter((lead) => lead.assignedTo === "Unassigned");
+      currentLeads = currentLeads.filter((lead) => lead.assignedTo.name === "Unassigned");
     }
     else if (assignmentFilter === 'All') {
       currentLeads = currentLeads;
     }
     else {
-      currentLeads = currentLeads.filter((lead) => lead.assignedTo !== "Unassigned");
+      currentLeads = currentLeads.filter((lead) => lead.assignedTo.name !== "Unassigned");
     }
 
     // Apply worker filter (only if assignment filter is 'All' or 'Assigned')
-    // if (selectedWorker !== 'All' && assignmentFilter !== 'Unassigned') {
-    //   currentLeads = currentLeads.filter((lead) => lead.assignedTo === selectedWorker);
-    // }
-    // else if (selectedWorker !== 'All' && assignmentFilter === 'Unassigned') {
-    //   // If 'Unassigned' is selected for assignment, and a specific worker is also selected,
-    //   // no leads will match, so we clear the results.
-    //   currentLeads = [];
-    // }
+    if (selectedWorker !== 'All' && assignmentFilter !== 'Unassigned') {
+      currentLeads = currentLeads.filter((lead) => lead.assignedTo.name === selectedWorker);
+    }
+    else if (selectedWorker !== 'All' && assignmentFilter === 'Unassigned') {
+      currentLeads = [];
+    }
 
 
     // Apply search term filter
@@ -374,7 +366,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0F172B] text-gray-900 dark:text-gray-100">
       {/* Header Section */}
-      <header className="bg-white dark:bg-[#0F172B] shadow-sm border-b">
+      <header className="bg-[#F9FAFB] dark:bg-[#0F172B]">
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -456,9 +448,6 @@ const App: React.FC = () => {
                     key={worker}
                     onClick={() => handleWorkerSelect(worker)}
                     className={selectedWorker === worker ? 'bg-blue-50 text-blue-600' : ''}
-                  // Disable specific worker selection if 'Unassigned' is the primary filter
-                  // and the current worker is not 'All' or if it's 'All' but assignment filter is 'Unassigned'
-                  // This is handled in filteredLeads logic, so just allow selection here.
                   >
                     {worker === null ? 'Unassigned' : worker}
                   </DropdownItem>
@@ -536,7 +525,7 @@ const App: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
-                          {lead.assignedTo || 'Unassigned'}
+                          {lead.assignedTo.name || 'Unassigned'}
                         </td>
                         <td className="px-6 py-4 dark:text-white whitespace-nowrap text-sm text-gray-900">
                           {lead.lastContact}
@@ -580,9 +569,7 @@ const App: React.FC = () => {
                         <p className="text-sm text-gray-500">{lead.leadInfo.position}</p>
                       </div>
                       <div className="flex space-x-2">
-                        {/* <button className="text-gray-400 hover:text-blue-600 transition-colors">
-                          <MessageSquare size={18} />
-                        </button> */}
+                        
                         <button className="text-gray-400 hover:text-yellow-600 transition-colors">
                           <Edit size={18} />
                         </button>
@@ -617,7 +604,7 @@ const App: React.FC = () => {
                         </div>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Assigned To:</span> {lead.assignedTo || 'Unassigned'}
+                        <span className="font-medium text-gray-700">Assigned To:</span> {lead?.assignedTo?.name || 'Unassigned'}
                       </div>
                       <div>
                         <span className="font-medium text-gray-700">Last Contact:</span> {lead.lastContact}

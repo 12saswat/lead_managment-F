@@ -237,18 +237,7 @@ export default function AddLeadForm(): JSX.Element {
     //   return;
     // }
     // setIsLoading(true);
-    try {
-      // Prepare submission data
-      // const submissionData: FormData = {
-      //   ...formData,
-      //   createdAt: new Date().toISOString(),
-      //   createdBy: "current-user-id", // In real app, get from auth context
-      // };
-
-      // Simulate API call
-      // await new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      
+    try { 
       const response = await axios.post("/lead/createlead",
       { name: formData.name,
         email: formData.email,
@@ -439,7 +428,7 @@ export default function AddLeadForm(): JSX.Element {
                 </CardContent>
               </Card>
             </div>
-
+              
             {/* Right Column - Form */}
             <div className="lg:col-span-2">
               <Card
