@@ -77,7 +77,7 @@ export default function ManagerLogin() {
       if (data.success) {
         toast.success("Login successful! Redirecting to dashboard...");
 
-        window.location.replace("/leads/upload-leads/"); // Commented out for sandbox demo
+        window.location.replace("/manager/dashboard"); // Commented out for sandbox demo
       } else {
         // Show an error toast if login fails
         toast.error("Login failed: " + (data.msg || "Invalid credentials"));
@@ -195,7 +195,7 @@ export default function ManagerLogin() {
                         placeholder="manager@company.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full pl-12 pr-4 py-3 dark:text-black bg-gray-50 border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         required
                       />
                     </div>
@@ -213,7 +213,7 @@ export default function ManagerLogin() {
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-12 pr-12 py-3 bg-gray-50 border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full pl-12 pr-12 py-3 bg-gray-50 dark:text-black border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         required
                         minLength={8}
                       />

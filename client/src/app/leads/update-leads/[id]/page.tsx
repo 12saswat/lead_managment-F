@@ -386,11 +386,6 @@ export default function UpdateLeadForm(): JSX.Element {
         );
       }
 
-      // Add document if uploaded
-      // if (formData.documents) {
-      //   submitFormData.append('documents', formData.documents);
-      // }
-
       // Make API call
       const response = await Axios.put(
         `/lead/updateleads/${leadId}`,
