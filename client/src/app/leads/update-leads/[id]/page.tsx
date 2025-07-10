@@ -24,7 +24,6 @@ import {
   User,
   Mail,
   Phone,
-  Briefcase,
   ArrowUp,
   ArrowDown,
   ArrowRight,
@@ -35,7 +34,6 @@ import {
   Upload,
   Building,
   Target,
-  Calendar,
   Users,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -46,7 +44,7 @@ interface FormData {
   name: string;
   email: string;
   phoneNumber: string;
-  category: string;
+  category: string; // This will hold the category _id
   position: string;
   leadSource: string;
   notes: string;
@@ -69,7 +67,7 @@ interface LeadApiResponse {
   name: string;
   email: string;
   phoneNumber: string;
-  category: string;
+  category: string; // The category _id from the API
   position?: string;
   leadSource?: string;
   notes?: string;
@@ -83,6 +81,15 @@ interface LeadApiResponse {
   isDeleted: boolean;
   createdAt: string;
 }
+// TypeScript interfaces
+interface Category {
+  _id: string;
+  title: string;
+  description: string;
+  color: string;
+  createdAt: string;
+  __v: number;
+}
 
 export default function UpdateLeadForm(): JSX.Element {
   const pathname = usePathname();
@@ -93,7 +100,7 @@ export default function UpdateLeadForm(): JSX.Element {
     name: "",
     email: "",
     phoneNumber: "",
-    category: "",
+    category: "", // Initialize with an empty string
     position: "",
     leadSource: "",
     notes: "",
@@ -103,7 +110,8 @@ export default function UpdateLeadForm(): JSX.Element {
     followUpDates: [],
     lastContact: "",
   });
-
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isFetchingLead, setIsFetchingLead] = useState<boolean>(true);
   const [success, setSuccess] = useState<boolean>(false);
@@ -145,7 +153,7 @@ export default function UpdateLeadForm(): JSX.Element {
           name: leadData.name || "",
           email: leadData.email || "",
           phoneNumber: leadData.phoneNumber?.toString() || "",
-          category: leadData.category || "",
+          category: leadData.category || "", // Set the category _id here
           position: leadData.position || "",
           leadSource: leadData.leadSource || "",
           notes: leadData.notes || "",
@@ -168,6 +176,34 @@ export default function UpdateLeadForm(): JSX.Element {
     }
   };
 
+  // Fetch categories from API
+  const fetchCategories = async (): Promise<void> => {
+    setLoadingCategories(true);
+    try {
+      const response = await Axios.get("/category/");
+      console.log("Categories API response:", response.data);
+
+      if (response.data.success && response.data.data) {
+        setCategories(response.data.data);
+        console.log("Categories loaded:", response.data.data);
+      } else {
+        console.error("API response structure unexpected:", response.data);
+        setErrors((prev) => ({
+          ...prev,
+          categories: "Failed to load categories. Please refresh the page.",
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      setErrors((prev) => ({
+        ...prev,
+        categories: "Failed to load categories. Please refresh the page.",
+      }));
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
   // Fetch lead data on component mount
   useEffect(() => {
     if (leadId) {
@@ -176,6 +212,7 @@ export default function UpdateLeadForm(): JSX.Element {
       setErrors({ submit: "No lead ID provided" });
       setIsFetchingLead(false);
     }
+    fetchCategories(); // Fetch categories when component mounts
   }, [leadId]);
 
   // Animation on mount
@@ -228,7 +265,7 @@ export default function UpdateLeadForm(): JSX.Element {
   ): void => {
     const { name, value } = e.target;
 
-    // Don't allow email changes
+    // Don't allow email changes (as per your original code)
     if (name === "email") return;
 
     setFormData((prev) => ({
@@ -344,14 +381,16 @@ export default function UpdateLeadForm(): JSX.Element {
 
   // Handle form submission
   const handleSubmit = async (): Promise<void> => {
-    // if (!validateForm()) {
-    //   const firstErrorField = Object.keys(errors)[0];
-    //   const errorElement = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement;
-    //   if (errorElement) {
-    //     errorElement.focus();
-    //   }
-    //   return;
-    // }
+    if (!validateForm()) {
+      const firstErrorField = Object.keys(errors)[0];
+      const errorElement = document.querySelector(
+        `[name="${firstErrorField}"], [id="${firstErrorField}"]`
+      ) as HTMLElement; // Added ID for select fields
+      if (errorElement) {
+        errorElement.focus();
+      }
+      return;
+    }
 
     setIsLoading(true);
     setErrors({});
@@ -360,10 +399,10 @@ export default function UpdateLeadForm(): JSX.Element {
       // Prepare form data for submission
       const submitFormData = new FormData();
 
-      // Add all form fields except email
+      // Add all form fields including category
       submitFormData.append("name", formData.name);
       submitFormData.append("phoneNumber", formData.phoneNumber);
-      // submitFormData.append('category', formData.category);
+      submitFormData.append("category", formData.category); // *** IMPORTANT FIX: Add category to form data ***
       submitFormData.append("position", formData.position);
       submitFormData.append("leadSource", formData.leadSource);
       submitFormData.append("notes", formData.notes);
@@ -384,6 +423,11 @@ export default function UpdateLeadForm(): JSX.Element {
           "followUpDates",
           JSON.stringify(formData.followUpDates)
         );
+      }
+
+      // Add document if it exists
+      if (formData.documents) {
+        submitFormData.append("documents", formData.documents);
       }
 
       // Make API call
@@ -593,9 +637,8 @@ export default function UpdateLeadForm(): JSX.Element {
             <div className="lg:col-span-2">
               <Card
                 ref={cardRef}
-                className={`bg-white/95 backdrop-blur-sm border-0 shadow-2xl transition-all duration-300 ${
-                  success ? "ring-2 ring-green-500 ring-opacity-50" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-sm border-0 shadow-2xl transition-all duration-300 ${success ? "ring-2 ring-green-500 ring-opacity-50" : ""
+                  }`}
               >
                 <CardHeader className="border-b border-gray-100 bg-gray-50/50">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -670,11 +713,10 @@ export default function UpdateLeadForm(): JSX.Element {
                               placeholder="Full name"
                               value={formData.name}
                               onChange={handleInputChange}
-                              className={`pl-10 ${
-                                errors.name
+                              className={`pl-10 ${errors.name
                                   ? "border-red-500 focus-visible:ring-red-500"
                                   : ""
-                              }`}
+                                }`}
                               disabled={isLoading}
                             />
                           </div>
@@ -725,11 +767,10 @@ export default function UpdateLeadForm(): JSX.Element {
                               placeholder="Phone number"
                               value={formData.phoneNumber}
                               onChange={handleInputChange}
-                              className={`pl-10 ${
-                                errors.phoneNumber
+                              className={`pl-10 ${errors.phoneNumber
                                   ? "border-red-500 focus-visible:ring-red-500"
                                   : ""
-                              }`}
+                                }`}
                               disabled={isLoading}
                             />
                           </div>
@@ -768,25 +809,72 @@ export default function UpdateLeadForm(): JSX.Element {
                         </div>
 
                         {/* Category */}
-                        {/* <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="category"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Category <span className="text-red-500">*</span>
                           </Label>
                           <Select
                             value={formData.category}
-                            onValueChange={(value: string) => handleSelectChange("category", value)}
-                            disabled={isLoading}
+                            onValueChange={(value: string) =>
+                              handleSelectChange("category", value)
+                            }
+                            disabled={isLoading || loadingCategories}
                           >
-                            <SelectTrigger className={errors.category ? "border-red-500 focus:ring-red-500" : ""}>
-                              <SelectValue placeholder="Select industry" />
+                            <SelectTrigger
+                              className={
+                                errors.category
+                                  ? "border-red-500 focus:ring-red-500"
+                                  : ""
+                              }
+                            >
+                              {formData.category ? (
+                                <SelectValue />
+                              ) : (
+                                <span className="text-gray-500">
+                                  Select category
+                                </span>
+                              )}
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="IT">IT</SelectItem>
-                              <SelectItem value="Hospital">Healthcare</SelectItem>
-                              <SelectItem value="Sales">Sales</SelectItem>
-                              <SelectItem value="Teachers">Education</SelectItem>
-                              <SelectItem value="Students">Students</SelectItem>
-                              <SelectItem value="Banks">Banking</SelectItem>
+                              {loadingCategories ? (
+                                <div className="flex items-center justify-center p-4">
+                                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                  <span className="text-sm text-gray-500">
+                                    Loading categories...
+                                  </span>
+                                </div>
+                              ) : categories.length > 0 ? (
+                                categories.map((category) => (
+                                  <SelectItem
+                                    key={category._id}
+                                    value={category._id} // Ensure value is the _id
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-3 h-3 rounded-full"
+                                        style={{
+                                          backgroundColor: category.color,
+                                        }}
+                                      ></div>
+                                      <span>{category.title}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="p-4 text-center text-sm text-gray-500">
+                                  No categories available
+                                  <br />
+                                  <button
+                                    onClick={fetchCategories}
+                                    className="text-blue-500 hover:text-blue-700 text-xs mt-1"
+                                  >
+                                    Retry loading
+                                  </button>
+                                </div>
+                              )}
                             </SelectContent>
                           </Select>
                           {errors.category && (
@@ -795,7 +883,13 @@ export default function UpdateLeadForm(): JSX.Element {
                               {errors.category}
                             </p>
                           )}
-                        </div> */}
+                          {errors.categories && (
+                            <p className="text-sm text-red-600 flex items-center gap-1">
+                              <X className="w-3 h-3" />
+                              {errors.categories}
+                            </p>
+                          )}
+                        </div>
 
                         {/* Lead Source */}
                         <div className="space-y-2">
