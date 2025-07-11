@@ -43,7 +43,7 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
       },
       contact: {
         email: lead.email || "No Email",
-        phone: String(lead.phoneNumber) || "No Phone Number",
+        phone: (lead.phoneNumber === null) ? "No Phone Number" : String(lead.phoneNumber),
       },
       status: lead.status || "new",
       priority: lead.priority || "low",
