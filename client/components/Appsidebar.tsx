@@ -1,17 +1,6 @@
 import {
-  Calendar,
   LogOut,
-  ChevronUp,
-  Home,
-  Inbox,
-  Search,
-  Settings,
-  User,
-  User2,
-  User2Icon,
   Plus,
-  Projector,
-  ChevronDown,
   LayoutDashboard,
   Users,
   Copy,
@@ -25,35 +14,17 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
-import { useParams, usePathname } from "next/navigation";
+import {usePathname } from "next/navigation";
 
 // Menu items.
 const items = [

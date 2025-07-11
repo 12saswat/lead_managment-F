@@ -39,21 +39,30 @@ import {
   Users,
 } from "lucide-react";
 import axios from "@/lib/Axios";
+
 // TypeScript interfaces
+interface Category {
+  _id: string;
+  title: string;
+  description: string;
+  color: string;
+  createdAt: string;
+  __v: number;
+}
+
 interface FormData {
   name: string;
   email: string;
   phoneNumber: string;
-  category: string;
+  category: string; // This will store the ObjectId
   position: string;
   leadSource: string;
   notes: string;
   priority: "high" | "medium" | "low";
   document: File | null;
-  // createdAt: string;
   status: "new" | "in-progress" | "follow-up" | "closed";
-  // createdBy: string;
 }
+
 interface FormErrors {
   [key: string]: string;
 }
@@ -72,10 +81,13 @@ export default function AddLeadForm(): JSX.Element {
     notes: "",
     priority: "medium",
     document: null,
-    // createdAt: "",
     status: "new",
-    // createdBy: "",
   });
+
+  // Categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState<boolean>(false);
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -83,8 +95,37 @@ export default function AddLeadForm(): JSX.Element {
   const cardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Animation on mount
+  // Fetch categories from API
+  const fetchCategories = async (): Promise<void> => {
+    setLoadingCategories(true);
+    try {
+      const response = await axios.get("/category/");
+      console.log("Categories API response:", response.data);
+
+      if (response.data.success && response.data.data) {
+        setCategories(response.data.data);
+        console.log("Categories loaded:", response.data.data);
+      } else {
+        console.error("API response structure unexpected:", response.data);
+        setErrors((prev) => ({
+          ...prev,
+          categories: "Failed to load categories. Please refresh the page.",
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      setErrors((prev) => ({
+        ...prev,
+        categories: "Failed to load categories. Please refresh the page.",
+      }));
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  // Animation on mount and fetch categories
   useEffect(() => {
+    fetchCategories();
     if (formRef.current) {
       formRef.current.style.opacity = "0";
       formRef.current.style.transform = "translateY(20px)";
@@ -100,6 +141,8 @@ export default function AddLeadForm(): JSX.Element {
 
       return () => clearTimeout(timer);
     }
+
+    // Fetch categories on component mount
   }, []);
 
   // Form validation
@@ -151,8 +194,10 @@ export default function AddLeadForm(): JSX.Element {
       }));
     }
   };
+
   // Handle select changes
   const handleSelectChange = (field: keyof FormData, value: string): void => {
+    console.log("Hello jiii", formData.category);
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -165,6 +210,7 @@ export default function AddLeadForm(): JSX.Element {
       }));
     }
   };
+
   // Handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     if (e.target.files && e.target.files[0]) {
@@ -220,39 +266,41 @@ export default function AddLeadForm(): JSX.Element {
       fileInputRef.current.value = "";
     }
   };
+
   // Handle form submission
   const handleSubmit = async (): Promise<void> => {
-    console.log("Hellojiii");
-    
     console.log("Submitting lead data:", formData);
-    // if (!validateForm()) {
-    //   // Focus on first error field
-    //   const firstErrorField = Object.keys(errors)[0];
-    //   const errorElement = document.querySelector(
-    //     `[name="${firstErrorField}"]`
-    //   ) as HTMLElement;
-    //   if (errorElement) {
-    //     errorElement.focus();
-    //   }
-    //   return;
-    // }
-    // setIsLoading(true);
-    try { 
-      const response = await axios.post("/lead/createlead",
-      { name: formData.name,
+
+    if (!validateForm()) {
+      // Focus on first error field
+      const firstErrorField = Object.keys(errors)[0];
+      const errorElement = document.querySelector(
+        `[name="${firstErrorField}"]`
+      ) as HTMLElement;
+      if (errorElement) {
+        errorElement.focus();
+      }
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post("/lead/createlead", {
+        name: formData.name,
         email: formData.email,
         phoneNumber: formData.phoneNumber,
-        // category: formData.category,
+        category: formData.category, // This now contains the ObjectId
         position: formData.position,
         leadSource: formData.leadSource,
         notes: formData.notes,
         priority: formData.priority,
         document: formData.document,
-        status: formData.status,});
-      const data = response.data; 
+        status: formData.status,
+      });
+
+      const data = response.data;
       console.log("Lead submitted successfully:", data);
 
-      // console.log("Lead submitted:", submissionData);
       setSuccess(true);
 
       // Add success animation
@@ -265,8 +313,9 @@ export default function AddLeadForm(): JSX.Element {
           }
         }, 200);
       }
+
       // Reset form after success
-      const resetTimer = setTimeout(() => {
+      setTimeout(() => {
         setFormData({
           name: "",
           email: "",
@@ -277,9 +326,7 @@ export default function AddLeadForm(): JSX.Element {
           notes: "",
           priority: "medium",
           document: null,
-          // createdAt: "",
           status: "new",
-          // createdBy: "",
         });
         setSuccess(false);
         setErrors({});
@@ -292,7 +339,7 @@ export default function AddLeadForm(): JSX.Element {
       console.error("Error submitting lead:", error);
       setErrors((prev) => ({
         ...prev,
-        submit: "Failed to save lead. Please try again...",
+        submit: "Failed to save lead. Please try again.",
       }));
 
       // Error animation
@@ -326,6 +373,7 @@ export default function AddLeadForm(): JSX.Element {
         return <ArrowRight className="w-4 h-4 text-yellow-500" />;
     }
   };
+
   // Priority badge component
   const PriorityBadge = ({
     priority,
@@ -344,6 +392,13 @@ export default function AddLeadForm(): JSX.Element {
       </Badge>
     );
   };
+
+  // Get category display name by ID
+  const getCategoryDisplayName = (categoryId: string): string => {
+    const category = categories.find((cat) => cat._id === categoryId);
+    return category ? category.title : categoryId;
+  };
+
   return (
     <div>
       <style jsx>{`
@@ -428,7 +483,7 @@ export default function AddLeadForm(): JSX.Element {
                 </CardContent>
               </Card>
             </div>
-              
+
             {/* Right Column - Form */}
             <div className="lg:col-span-2">
               <Card
@@ -612,45 +667,84 @@ export default function AddLeadForm(): JSX.Element {
                             disabled={isLoading}
                           />
                         </div>
-
                         {/* Category */}
-                          <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
-                             Category {/* <span className="text-red-500"></span> */}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="category" className="text-sm font-medium text-gray-700">
+                            Category <span className="text-red-500">*</span>
                           </Label>
                           <Select
                             value={formData.category}
                             onValueChange={(value: string) =>
                               handleSelectChange("category", value)
                             }
-                            disabled={isLoading}
+                            disabled={isLoading || loadingCategories}
                           >
                             <SelectTrigger
+                              id="category"
                               className={
                                 errors.category
                                   ? "border-red-500 focus:ring-red-500"
                                   : ""
                               }
                             >
-                              <SelectValue placeholder="Select industry" />
+                              <SelectValue
+                                placeholder={
+                                  loadingCategories
+                                    ? "Loading categories..."
+                                    : "Select category"
+                                }
+                              />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="IT">IT</SelectItem>
-                              <SelectItem value="Hospital">
-                                Healthcare
-                              </SelectItem>
-                              <SelectItem value="Sales">Sales</SelectItem>
-                              <SelectItem value="Teachers">
-                                Education
-                              </SelectItem>
-                              <SelectItem value="Students">Students</SelectItem>
-                              <SelectItem value="Banks">Banking</SelectItem>
+                              {loadingCategories ? (
+                                <div className="flex items-center justify-center p-4">
+                                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                  <span className="text-sm text-gray-500">
+                                    Loading categories...
+                                  </span>
+                                </div>
+                              ) : categories.length > 0 ? (
+                                categories.map((category) => (
+                                  <SelectItem
+                                    key={category._id}
+                                    value={category._id}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-3 h-3 rounded-full"
+                                        style={{
+                                          backgroundColor: category.color,
+                                        }}
+                                      ></div>
+                                      <span>{category.title}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="p-4 text-center text-sm text-gray-500">
+                                  No categories available
+                                  <br />
+                                  <button
+                                    onClick={fetchCategories}
+                                    className="text-blue-500 hover:text-blue-700 text-xs mt-1"
+                                  >
+                                    Retry loading
+                                  </button>
+                                </div>
+                              )}
                             </SelectContent>
                           </Select>
                           {errors.category && (
                             <p className="text-sm text-red-600 flex items-center gap-1">
                               <X className="w-3 h-3" />
                               {errors.category}
+                            </p>
+                          )}
+                          {errors.categories && (
+                            <p className="text-sm text-red-600 flex items-center gap-1">
+                              <X className="w-3 h-3" />
+                              {errors.categories}
                             </p>
                           )}
                         </div>
@@ -812,7 +906,9 @@ export default function AddLeadForm(): JSX.Element {
                       </Button>
                       <Button
                         type="button"
-                        onClick={() => { handleSubmit() }}
+                        onClick={() => {
+                          handleSubmit();
+                        }}
                         className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                         disabled={isLoading || success}
                       >
