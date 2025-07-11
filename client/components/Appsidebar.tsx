@@ -45,7 +45,7 @@ const items = [
   },
   {
     title: "Bulk Lead",
-    url: "/leads/upload-leads-bulk/5",
+    url: "/leads/upload-leads-bulk",
     icon: Copy,
   },
   {
@@ -80,7 +80,7 @@ const Appsidebar = () => {
             <SidebarMenuButton asChild>
               <Link href="/">
                 <Image src="/Indibus.jpg" alt="logo" width={30} height={30} className="rounded-2xl" />
-                <span>Rahul Kumar</span>
+                <span>Lead Management</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

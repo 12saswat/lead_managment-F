@@ -50,7 +50,7 @@ const items = [
   },
   {
     title: "Bulk Lead",
-    url: "/leads/upload-leads-bulk/${id}",
+    url: "/leads/upload-leads-bulk",
     icon: Copy,
   },
   // {
@@ -84,8 +84,8 @@ const WorkerSidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/">
-                <Image src="/vercel.svg" alt="logo" width={20} height={20} />
-                <span>Rahul Kumar</span>
+                <Image src="/Indibus.jpg" alt="logo" width={30} height={30} className="rounded-2xl" />
+                <span>Lead Management</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
