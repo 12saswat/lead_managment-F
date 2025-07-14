@@ -16,14 +16,14 @@ interface Category {
   __v: number;
 }
 interface Worker {
-  id: string;
+  _id: string;
   name: string;
 }
 
 const BulkUploadPage = () => {
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [category, setCategory] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [assignee, setAssignee] = useState(""); // stores worker ID
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState<boolean>(true);
@@ -106,14 +106,14 @@ const BulkUploadPage = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ["Full Name", "Email", "Phone", "Position", "Source", "Priority", "Notes"];
+    const headers = ["name", "email", "phonenumber", "position", "leadSource", "priority", "notes"];
     const example = [
       "Raman",
       "raman@example.com",
       "9876543210",
       "Developer",
       "Advertisement",
-      "High",
+      "high",
       "Some text here about the lead or additional notes about the lead. This can include any relevant information that helps in understanding the lead better."
     ];
     const csvContent = headers.join(",") + "\n" + example.join(",");
@@ -140,7 +140,7 @@ const BulkUploadPage = () => {
     formData.append("file", excelFile);
     formData.append("category", category);
     if (assignee) {
-      formData.append("assignedTo", assignee);
+      formData.append("assignedTo", assignee); // Use worker ID
     }
     try {
       const res = await axios.post(
@@ -213,7 +213,7 @@ const BulkUploadPage = () => {
             <OptionsAndSubmitSection
               category={category}
               setCategory={setCategory}
-              assignee={assignee}
+              assignee={assignee} // Pass worker ID
               setAssignee={setAssignee}
               loading={loading}
               excelFile={excelFile}
