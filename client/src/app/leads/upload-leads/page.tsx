@@ -418,34 +418,34 @@ export default function AddLeadForm(): JSX.Element {
 
       <div
         ref={formRef}
-        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-6 sm:py-12 px-4 sm:px-6 lg:px-8"
+        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-800 py-6 sm:py-12 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 -my-7 gap-8">
             {/* Left Column - Info Cards */}
             <div className="lg:col-span-1 space-y-6">
               {/* Quick Stats */}
-              <Card className="bg-white/80 dark:bg-[#0F172B] backdrop-blur-sm border-0 shadow-lg">
+              <Card className="bg-white/80 dark:bg-[#1a2236] backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
                     <Target className="w-5 h-5 text-blue-600" />
                     Lead Pipeline
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">New Leads</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">New Leads</span>
                     <Badge variant="secondary">24</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">In Progress</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">In Progress</span>
                     <Badge variant="secondary">12</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Converted</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Converted</span>
                     <Badge
                       variant="secondary"
-                      className="bg-green-100 text-green-800"
+                      className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                     >
                       8
                     </Badge>
@@ -454,7 +454,7 @@ export default function AddLeadForm(): JSX.Element {
               </Card>
 
               {/* Tips Card */}
-              <Card className="bg-gradient-to-br  from-blue-50 to-indigo-50 border-0 shadow-lg dark:bg-[#0F172B]">
+              <Card className=" border-0 shadow-lg dark:bg-[#1a2236]">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Users className="w-5 h-5 text-indigo-600 " />
@@ -462,7 +462,7 @@ export default function AddLeadForm(): JSX.Element {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="text-sm text-gray-700">
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
                     <p className="mb-2">
                       • <strong>High Priority:</strong> Follow up within 24
                       hours
@@ -488,18 +488,18 @@ export default function AddLeadForm(): JSX.Element {
             <div className="lg:col-span-2">
               <Card
                 ref={cardRef}
-                className={`bg-white/95 dark:bg-[#0F172B] backdrop-blur-sm border-0 shadow-2xl transition-all duration-300 ${
+                className={`bg-white/95 dark:bg-[#1a2236] backdrop-blur-sm border-0 shadow-2xl transition-all duration-300 ${
                   success ? "ring-2 ring-green-500 ring-opacity-50" : ""
                 }`}
               >
-                <CardHeader className="border-b border-gray-100 bg-gray-50/50 dark:bg-[#0F172B]">
+                <CardHeader className="border-b border-gray-100 bg-gray-50/50 dark:bg-[#232b3e]">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
-                      <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                      <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Building className="w-6 h-6 text-blue-600" />
                         Add New Lead
                       </CardTitle>
-                      <CardDescription className="text-gray-600 mt-1">
+                      <CardDescription className="text-gray-600 dark:text-gray-300 mt-1">
                         Complete the form below to add a new prospect to your
                         sales pipeline
                       </CardDescription>
@@ -512,13 +512,13 @@ export default function AddLeadForm(): JSX.Element {
                   <div className="space-y-6">
                     {/* Success Message */}
                     {success && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                      <div className="bg-green-50 border border-green-200 dark:bg-green-900 dark:border-green-700 rounded-lg p-4 flex items-center gap-3">
                         <Check className="w-5 h-5 text-green-600" />
                         <div>
-                          <p className="font-medium text-green-800">
+                          <p className="font-medium text-green-800 dark:text-green-200">
                             Lead saved successfully!
                           </p>
-                          <p className="text-sm text-green-600">
+                          <p className="text-sm text-green-600 dark:text-green-200">
                             The form will reset automatically in 3 seconds.
                           </p>
                         </div>
@@ -527,9 +527,9 @@ export default function AddLeadForm(): JSX.Element {
 
                     {/* Error Message */}
                     {errors.submit && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+                      <div className="bg-red-50 border border-red-200 dark:bg-red-900 dark:border-red-700 rounded-lg p-4 flex items-center gap-3">
                         <X className="w-5 h-5 text-red-600" />
-                        <p className="font-medium text-red-800">
+                        <p className="font-medium text-red-800 dark:text-red-200">
                           {errors.submit}
                         </p>
                       </div>
@@ -539,7 +539,7 @@ export default function AddLeadForm(): JSX.Element {
                     <div className="grid grid-cols-1 -my-7 lg:grid-cols-3 gap-6">
                       {/* Column 1 - Contact Information */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
                           Contact Info
                         </h3>
 
@@ -547,7 +547,7 @@ export default function AddLeadForm(): JSX.Element {
                         <div className="space-y-2">
                           <Label
                             htmlFor="name"
-                            className="text-sm font-medium text-gray-700"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
                           >
                             Full Name <span className="text-red-500">*</span>
                           </Label>
@@ -560,7 +560,7 @@ export default function AddLeadForm(): JSX.Element {
                               placeholder="Full name"
                               value={formData.name}
                               onChange={handleInputChange}
-                              className={`pl-10 ${
+                              className={`pl-10 dark:bg-[#232b3e] dark:text-white dark:border-gray-700 ${
                                 errors.name
                                   ? "border-red-500 focus-visible:ring-red-500"
                                   : ""
@@ -569,7 +569,7 @@ export default function AddLeadForm(): JSX.Element {
                             />
                           </div>
                           {errors.name && (
-                            <p className="text-sm text-red-600 flex items-center gap-1">
+                            <p className="text-sm text-red-600 dark:text-red-300 flex items-center gap-1">
                               <X className="w-3 h-3" />
                               {errors.name}
                             </p>
@@ -580,7 +580,7 @@ export default function AddLeadForm(): JSX.Element {
                         <div className="space-y-2">
                           <Label
                             htmlFor="email"
-                            className="text-sm font-medium text-gray-700"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
                           >
                             Email <span className="text-red-500">*</span>
                           </Label>
@@ -593,7 +593,7 @@ export default function AddLeadForm(): JSX.Element {
                               placeholder="Email address"
                               value={formData.email}
                               onChange={handleInputChange}
-                              className={`pl-10 ${
+                              className={`pl-10 dark:bg-[#232b3e] dark:text-white dark:border-gray-700 ${
                                 errors.email
                                   ? "border-red-500 focus-visible:ring-red-500"
                                   : ""
@@ -602,7 +602,7 @@ export default function AddLeadForm(): JSX.Element {
                             />
                           </div>
                           {errors.email && (
-                            <p className="text-sm text-red-600 flex items-center gap-1">
+                            <p className="text-sm text-red-600 dark:text-red-300 flex items-center gap-1">
                               <X className="w-3 h-3" />
                               {errors.email}
                             </p>
@@ -613,7 +613,7 @@ export default function AddLeadForm(): JSX.Element {
                         <div className="space-y-2">
                           <Label
                             htmlFor="phoneNumber"
-                            className="text-sm font-medium text-gray-700"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
                           >
                             Phone
                           </Label>
@@ -626,7 +626,7 @@ export default function AddLeadForm(): JSX.Element {
                               placeholder="Phone number"
                               value={formData.phoneNumber}
                               onChange={handleInputChange}
-                              className={`pl-10 ${
+                              className={`pl-10 dark:bg-[#232b3e] dark:text-white dark:border-gray-700 ${
                                 errors.phoneNumber
                                   ? "border-red-500 focus-visible:ring-red-500"
                                   : ""
@@ -635,7 +635,7 @@ export default function AddLeadForm(): JSX.Element {
                             />
                           </div>
                           {errors.phoneNumber && (
-                            <p className="text-sm text-red-600 flex items-center gap-1">
+                            <p className="text-sm text-red-600 dark:text-red-300 flex items-center gap-1">
                               <X className="w-3 h-3" />
                               {errors.phoneNumber}
                             </p>
@@ -645,7 +645,7 @@ export default function AddLeadForm(): JSX.Element {
 
                       {/* Column 2 - Business Information */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
                           Business Info
                         </h3>
 
@@ -653,7 +653,7 @@ export default function AddLeadForm(): JSX.Element {
                         <div className="space-y-2">
                           <Label
                             htmlFor="position"
-                            className="text-sm font-medium text-gray-700"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
                           >
                             Position
                           </Label>
@@ -670,7 +670,7 @@ export default function AddLeadForm(): JSX.Element {
                         {/* Category */}
 
                         <div className="space-y-2">
-                          <Label htmlFor="category" className="text-sm font-medium text-gray-700">
+                          <Label htmlFor="category" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Category <span className="text-red-500">*</span>
                           </Label>
                           <Select
@@ -736,13 +736,13 @@ export default function AddLeadForm(): JSX.Element {
                             </SelectContent>
                           </Select>
                           {errors.category && (
-                            <p className="text-sm text-red-600 flex items-center gap-1">
+                            <p className="text-sm text-red-600 dark:text-red-300 flex items-center gap-1">
                               <X className="w-3 h-3" />
                               {errors.category}
                             </p>
                           )}
                           {errors.categories && (
-                            <p className="text-sm text-red-600 flex items-center gap-1">
+                            <p className="text-sm text-red-600 dark:text-red-300 flex items-center gap-1">
                               <X className="w-3 h-3" />
                               {errors.categories}
                             </p>
@@ -753,7 +753,7 @@ export default function AddLeadForm(): JSX.Element {
                         <div className="space-y-2">
                           <Label
                             htmlFor="leadSource"
-                            className="text-sm font-medium text-gray-700"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
                           >
                             Source
                           </Label>
@@ -771,13 +771,13 @@ export default function AddLeadForm(): JSX.Element {
 
                       {/* Column 3 - Additional Information */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
                           Additional Info
                         </h3>
 
                         {/* Priority */}
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
+                          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Priority
                           </Label>
                           <Select
@@ -821,7 +821,7 @@ export default function AddLeadForm(): JSX.Element {
 
                         {/* Document Upload */}
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
+                          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Documents
                           </Label>
                           <div className="flex flex-col gap-2">
@@ -875,7 +875,7 @@ export default function AddLeadForm(): JSX.Element {
                         <div className="space-y-2">
                           <Label
                             htmlFor="notes"
-                            className="text-sm font-medium text-gray-700"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
                           >
                             Notes
                           </Label>
