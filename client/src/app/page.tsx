@@ -96,32 +96,34 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 text-gray-900" ref={container}>
 
       {/* Navbar */}
-      <nav className="flex justify-between items-center px-6 py-4 bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <Link href="/" className="flex items-center gap-2">
-          <Image 
-            src="/Indibus.jpg" 
-            alt="Indibus Logo" 
-            width={40} 
-            height={40} 
-            className='rounded-lg'
-          />
-          <span className="font-semibold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Indibus LeadPro
-          </span>
-        </Link>
-        <div className="flex gap-3">
-          <Link href="/worker/auth/login">
-            <Button variant="outline" className="gap-2">
-              <Briefcase className="w-4 h-4" />
-              Worker Login
-            </Button>
+      <nav className="px-6 py-4 bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <div className="flex items-center justify-between w-full">
+          <Link href="/" className="flex items-center gap-2">
+            <Image 
+              src="/Indibus.jpg" 
+              alt="Indibus Logo" 
+              width={40} 
+              height={40} 
+              className='rounded-2xl'
+            />
+            <span className="font-semibold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Indibus LeadPro
+            </span>
           </Link>
-          <Link href="/manager/auth/login">
-            <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-              <ClipboardList className="w-4 h-4" />
-              Manager Login
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/worker/auth/login">
+              <Button variant="outline" className="gap-2">
+                <Briefcase className="w-4 h-4" />
+                Worker Login
+              </Button>
+            </Link>
+            <Link href="/manager/auth/login">
+              <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                <ClipboardList className="w-4 h-4" />
+                Manager Login
+              </Button>
+            </Link>
+          </div>
         </div>
       </nav>
 

@@ -1,3 +1,5 @@
+"use client";
+
 import AssignmentTable from "@/../components/AssignmentTable";
 import NewAssignmentDialog from "@/../components/NewAssignmentDialog";
 import {
@@ -6,49 +8,144 @@ import {
     CheckCircle2,
     AlarmClockOff,
 } from "lucide-react";
+import axios from "@/lib/Axios";
+import React, { useEffect, useState } from "react";
 
-const assignments = [
-    {
-        id: "1",
-        category: "Tech Corp",
-        status: "Active" as const,
-        priority: "High" as const,
-        assignedTo: "Alice Johnson",
-        dueDate: "2024-01-27",
-    },
-    {
-        id: "2",
-        category: "Design Studio",
-        status: "Active" as const,
-        priority: "Medium" as const,
-        assignedTo: "Bob Davis",
-        dueDate: "2024-01-25",
-    },
-    {
-        id: "3",
-        category: "Retail Chain",
-        status: "Completed" as const,
-        priority: "High" as const,
-        assignedTo: "Carol White",
-        dueDate: "2024-01-22",
-    },
-    {
-        id: "4",
-        category: "Manufacturing Co",
-        status: "Overdue" as const,
-        priority: "Low" as const,
-        assignedTo: "David Lee",
-        dueDate: "2024-01-20",
-    },
-];
+// Define the Lead interface to match the backend response structure
+interface Lead {
+    id: string;
+    name: string; // Directly from backend
+    email: string | null;
+    phoneNumber: string | null;
+    category: {
+        id: string;
+        title: string;
+        color: string;
+        description: string;
+    } | null; // Can be null, specify nested title
+    position: string; // Directly from backend
+    leadSource: string;
+    notes: string;
+    createdBy: {
+        id: string;
+        name: string;
+    };
+    status: 'new' | 'in-progress' | 'follow-up' | 'closed';
+    priority: 'high' | 'medium' | 'low';
+    followUpDates: string[];
+    isDeleted: boolean;
+    createdAt: string;
+    assignedTo: { // AssignedTo is an object
+        id: string;
+        name: string;
+    } | null; // Can be null
+}
+
+// Define the interface for data to be passed to AssignmentTable
+export interface AssignmentTableData {
+    id: string;
+    name: string; // Lead name
+    position: string; // Lead position
+    category: string; // Category title
+    status: 'Active' | 'Completed' | 'Overdue'; // Mapped status
+    priority: 'High' | 'Medium' | 'Low'; // Mapped priority
+    assignedTo: string; // Assigned worker name
+    dueDate: string;
+}
+
+// API function to fetch leads
+const fetchLeads = async (): Promise<Lead[]> => {
+    try {
+        const res = await axios.get("/lead/getalllead");
+        const { data } = res.data; // Destructure data from res.data
+
+        if (!data || !data.leads || !data.pagination) {
+            throw new Error("Invalid response structure from server.");
+        }
+        console.log("Assigned Leads fetched>>>", data.leads);
+
+        const validStatuses = ["new", "in-progress", "follow-up", "closed"];
+        const validPriorities = ["high", "medium", "low"];
+
+        // Filter and map the leads to the Lead interface
+        const assignments: Lead[] = data.leads
+            .filter((lead: any) => lead.assignedTo && validStatuses.includes(lead.status) && validPriorities.includes(lead.priority))
+            .map((lead: any) => ({
+                id: lead.id,
+                name: lead.name || "N/A",
+                email: lead.email || null,
+                phoneNumber: lead.phoneNumber || null,
+                category: lead.category || null, // Keep as object for now, map title later
+                position: lead.position || "N/A",
+                leadSource: lead.leadSource || "N/A",
+                notes: lead.notes || "N/A",
+                createdBy: lead.createdBy || { id: "", name: "Unknown" },
+                status: lead.status,
+                priority: lead.priority,
+                followUpDates: lead.followUpDates || [],
+                isDeleted: lead.isDeleted || false,
+                createdAt: lead.createdAt || "",
+                assignedTo: lead.assignedTo || null, // Keep as object for now, map name later
+            }));
+        console.log("Filtered assigned leads >>>", assignments);
+        return assignments;
+    }
+    catch (error: any) {
+        console.error("Axios error fetching leads:", error?.response || error.message);
+        throw error;
+    }
+};
 
 export default function ManagerAssignmentsPage() {
+    const [assignments, setAssignments] = useState<Lead[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const getLeads = async () => {
+            setLoading(true);
+            try {
+                const leads = await fetchLeads();
+                setAssignments(leads);
+            } catch (err) {
+                // Handle error state, e.g., show a message to the user
+                console.error("Failed to fetch leads:", err);
+                setAssignments([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        getLeads();
+    }, []);
+
+    // Calculate summary statistics
     const summary = {
         total: assignments.length,
-        active: assignments.filter((a) => a.status === "Active").length,
-        completed: assignments.filter((a) => a.status === "Completed").length,
-        overdue: assignments.filter((a) => a.status === "Overdue").length,
+        active: assignments.filter((a) => a.status === "new" || a.status === "in-progress").length, // 'new' and 'in-progress' are active
+        completed: assignments.filter((a) => a.status === "closed").length, // Only 'closed' is completed
+        overdue: assignments.filter((a) => a.status === "follow-up").length, // 'follow-up' indicates overdue
     };
+
+    // Map raw assignments to AssignmentTableData for rendering
+    const assignmentsForTable: AssignmentTableData[] = assignments.map(a => ({
+        id: a.id,
+        name: a.name, // Lead name
+        position: a.position, // Lead position
+        category: a.category?.title || "Not Assigned", // Use category title, default if null
+        status: (a.status === "new" || a.status === "in-progress"
+            ? "Active"
+            : a.status === "follow-up"
+                ? "Overdue"
+                : "Completed") as "Active" | "Completed" | "Overdue", // Corrected status mapping
+        priority: (a.priority === "high"
+            ? "High"
+            : a.priority === "medium"
+                ? "Medium"
+                : "Low") as "High" | "Medium" | "Low",
+        assignedTo: a.assignedTo?.name || "Unassigned", // Use assignedTo name, default if null
+        dueDate: a.followUpDates && a.followUpDates.length > 0
+            ? new Date(a.followUpDates[0]).toLocaleDateString() // Format date for display
+            : new Date(a.createdAt).toLocaleDateString(), // Fallback to createdAt if no follow-up
+    }));
 
     return (
         <div className="p-8 relative min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-blue-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-800">
@@ -96,8 +193,11 @@ export default function ManagerAssignmentsPage() {
                     <AlarmClockOff className="w-14 h-14 text-red-500 dark:text-red-400 opacity-80" />
                 </div>
             </div>
-
-            <AssignmentTable assignments={assignments} />
+            {loading ? (
+                <div className="text-center py-10 text-lg text-gray-600 dark:text-gray-300">Loading assignments...</div>
+            ) : (
+                <AssignmentTable assignments={assignmentsForTable} />
+            )}
         </div>
     );
 }
