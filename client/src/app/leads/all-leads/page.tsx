@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, ChevronDown, MessageSquare, Trash2, Edit, Filter, X } from 'lucide-react';
+import { Search, ChevronDown, MessageSquare, PhoneOffIcon, Trash2, Edit, Filter, X } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import axios from "@/lib/Axios";
 import Pagination from '@/../components/Pagination';
@@ -20,8 +20,10 @@ interface Lead {
   };
   status: 'new' | 'in-progress' | 'follow-up' | 'closed';
   priority: 'high' | 'medium' | 'low';
-  assignedTo: {name:string | null}; // Allowed null for unassigned leads
+  assignedTo: { name: string | null }; // Allowed null for unassigned leads
+  category: string;
   lastContact: string;
+  followUpDate: string;
 }
 
 // API function to simulate fetching leads
@@ -34,7 +36,7 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
     }
     setCurrentPage(data.pagination.currentPage);
     setTotalPages(data.pagination.totalPages);
-    console.log("asd;kfmasd>>>",data.leads);
+    console.log("Backend Data>>>", data.leads);
     const mappedLeads: Lead[] = data.leads.map((lead: any) => ({
       id: lead.id,
       leadInfo: {
@@ -47,11 +49,13 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
       },
       status: lead.status || "new",
       priority: lead.priority || "low",
-      assignedTo: lead.assignedTo || {name:"Unassigned"},
+      assignedTo: lead.assignedTo || { name: "Unassigned" },
+      category: lead.category ? lead.category.title : "Un-Categorized",
       lastContact: new Date(lead.createdAt).toLocaleDateString("en-GB"),
+      followUpDate: lead.followUpDates && lead.followUpDates.length > 0 ? new Date(lead.followUpDates[lead.followUpDates.length - 1]).toLocaleDateString("en-GB") : "",
     }));
-    console.log("Map data >>>",mappedLeads);
-    
+    console.log("Map data >>>", mappedLeads);
+
     return mappedLeads;
   }
   catch (error: any) {
@@ -197,6 +201,25 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
+  const [followUpDates, setFollowUp] = useState<string | null>(null);
+  const [endConvo, setEndConvo] = useState<string | null>(null);
+  const [showFilterControls, setShowFilterControls] = useState(false);
+  const [NoCatOnlyAssign, setNoCatOnlyAssign] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
+  const [showEndConvoDialog, setShowEndConvoDialog] = useState(false);
+  const [followUpForm, setFollowUpForm] = useState({ date: '', notes: '' });
+  const [endConvoForm, setEndConvoForm] = useState({ type: 'positive', notes: '' });
+  const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
+  useEffect(() => {
+    const cookies = document.cookie.split(';').map(c => c.trim());
+    setShowFilterControls(cookies.some(c => c.startsWith('002')));
+    if (cookies.some(c => c.startsWith('001'))) {
+      setNoCatOnlyAssign(true);
+      setShowDateFilter(true);
+    }
+  }, []);
 
   // Fetch leads on component mount and when currentPage changes
   useEffect(() => {
@@ -259,8 +282,17 @@ const App: React.FC = () => {
       );
     }
 
+    // Apply date filter if enabled and selected
+    if (showDateFilter && selectedDate) {
+      const [year, month, day] = selectedDate.split('-');
+      const formattedSelectedDate = `${day}/${month}/${year}`;
+      currentLeads = currentLeads.filter((lead) => {
+        return lead.followUpDate === formattedSelectedDate;
+      });
+    }
+
     return currentLeads;
-  }, [leads, searchTerm, selectedWorker, assignmentFilter]);
+  }, [leads, searchTerm, selectedWorker, assignmentFilter, showDateFilter, selectedDate]);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -387,73 +419,98 @@ const App: React.FC = () => {
       <main className="px-4 sm:px-6 lg:px-8 py-6">
         {/* Search and Filter Section */}
         <div className="mb-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
                 placeholder="Search leads by name, position, or email..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                className="w-full lg:w-1/2 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
             </div>
 
-            {/* Filter Controls */}
-            <div className="flex gap-2 sm:gap-4">
-              {/* Assignment Filter Dropdown */}
-              <CustomDropdown
-                trigger={
-                  <>
-                    <Filter className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">
-                      {assignmentFilter === 'All' ? 'Filter by Assignment' : assignmentFilter}
-                    </span>
-                    <ChevronDown className="w-4 h-4 ml-2" />
-                  </>
-                }
-              >
-                <DropdownItem
-                  onClick={() => handleAssignmentFilter('All')}
-                  className={assignmentFilter === 'All' ? 'bg-blue-50 text-blue-600' : ''}
-                >
-                  All Leads
-                </DropdownItem>
-                <DropdownItem
-                  onClick={() => handleAssignmentFilter('Assigned')}
-                  className={assignmentFilter === 'Assigned' ? 'bg-blue-50 text-blue-600' : ''}
-                >
-                  Assigned
-                </DropdownItem>
-                <DropdownItem
-                  onClick={() => handleAssignmentFilter('Unassigned')}
-                  className={assignmentFilter === 'Unassigned' ? 'bg-blue-50 text-blue-600' : ''}
-                >
-                  Unassigned
-                </DropdownItem>
-              </CustomDropdown>
-
-              {/* Worker Filter Dropdown */}
-              <CustomDropdown
-                trigger={
-                  <>
-                    <span className="truncate max-w-[120px]">{selectedWorker}</span>
-                    <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
-                  </>
-                }
-              >
-                {workers.map((worker) => (
-                  <DropdownItem
-                    key={worker}
-                    onClick={() => handleWorkerSelect(worker)}
-                    className={selectedWorker === worker ? 'bg-blue-50 text-blue-600' : ''}
+            {/* Date Filter for worker */}
+            {showDateFilter && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Select by Follow-Up Date:</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={e => setSelectedDate(e.target.value)}
+                  className="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {selectedDate && (
+                  <button
+                    type="button"
+                    className="ml-1 text-gray-400 hover:text-red-500"
+                    onClick={() => setSelectedDate('')}
                   >
-                    {worker === null ? 'Unassigned' : worker}
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Filter Controls (visible only for cookies starting with '002') */}
+            {showFilterControls && (
+              <div className="flex gap-2 sm:gap-4">
+                {/* Assignment Filter Dropdown */}
+                <CustomDropdown
+                  trigger={
+                    <>
+                      <Filter className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">
+                        {assignmentFilter === 'All' ? 'Filter by Assignment' : assignmentFilter}
+                      </span>
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </>
+                  }
+                >
+                  <DropdownItem
+                    onClick={() => handleAssignmentFilter('All')}
+                    className={assignmentFilter === 'All' ? 'bg-blue-50 text-blue-600' : ''}
+                  >
+                    All Leads
                   </DropdownItem>
-                ))}
-              </CustomDropdown>
-            </div>
+                  <DropdownItem
+                    onClick={() => handleAssignmentFilter('Assigned')}
+                    className={assignmentFilter === 'Assigned' ? 'bg-blue-50 text-blue-600' : ''}
+                  >
+                    Assigned
+                  </DropdownItem>
+                  <DropdownItem
+                    onClick={() => handleAssignmentFilter('Unassigned')}
+                    className={assignmentFilter === 'Unassigned' ? 'bg-blue-50 text-blue-600' : ''}
+                  >
+                    Unassigned
+                  </DropdownItem>
+                </CustomDropdown>
+
+                {/* Worker Filter Dropdown */}
+                <CustomDropdown
+                  trigger={
+                    <>
+                      <span className="truncate max-w-[120px]">{selectedWorker}</span>
+                      <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
+                    </>
+                  }
+                >
+                  {workers.map((worker) => (
+                    <DropdownItem
+                      key={worker}
+                      onClick={() => handleWorkerSelect(worker)}
+                      className={selectedWorker === worker ? 'bg-blue-50 text-blue-600' : ''}
+                    >
+                      {worker === null ? 'Unassigned' : worker}
+                    </DropdownItem>
+                  ))}
+                </CustomDropdown>
+              </div>
+            )}
           </div>
         </div>
 
@@ -492,12 +549,12 @@ const App: React.FC = () => {
                       Priority
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Assigned To
+                      {NoCatOnlyAssign ? 'Category' : 'Assigned To'}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Last Contact
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -525,19 +582,168 @@ const App: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
-                          {lead.assignedTo.name || 'Unassigned'}
+                          {NoCatOnlyAssign ? (lead.category || 'Un-Categorized') : (lead.assignedTo.name || 'Unassigned')}
                         </td>
                         <td className="px-6 py-4 dark:text-white whitespace-nowrap text-sm text-gray-900">
                           {lead.lastContact}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center justify-between space-x-2">
-                            <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors">
+                            {NoCatOnlyAssign && (
+                              <>
+                                <button onClick={() => { setActiveLeadId(lead.id); setShowFollowUpDialog(true); }} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
+                                  <MessageSquare size={18} />
+                                </button>
+                                <button
+                                  onClick={() => { setActiveLeadId(lead.id); setShowEndConvoDialog(true); }}
+                                  className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                                >
+                                  <PhoneOffIcon size={18} />
+                                </button>
+                              </>
+                            )}
+                            {/* FollowUp Dialog */}
+                            {showFollowUpDialog && (
+                              <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-opacity-40">
+                                <div className="bg-white text-black rounded-xl shadow-lg w-full max-w-lg mx-auto p-6 md:p-8">
+                                  <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-semibold">Add Follow-up</h3>
+                                    <button
+                                      onClick={() => {
+                                        setShowFollowUpDialog(false);
+                                        setFollowUpForm({ date: '', notes: '' });
+                                      }}
+                                      className="text-gray-500 hover:text-red-500 transition"
+                                    >
+                                      <X size={24} />
+                                    </button>
+                                  </div>
+                                  <form
+                                    onSubmit={async (e) => {
+                                      e.preventDefault();
+                                      try {
+                                        await axios.post(`/lead/${activeLeadId}/follow-up`, {
+                                          followUpDate: followUpForm.date,
+                                          notes: followUpForm.notes,
+                                        });
+                                        toast.success('Follow-up added successfully!');
+                                        setShowFollowUpDialog(false);
+                                        setFollowUpForm({ date: '', notes: '' });
+                                      } catch (err: any) {
+                                        toast.error(err?.response?.data?.message || 'Failed to add follow-up.');
+                                      }
+                                    }}
+                                  >
+                                    <div className="mb-5">
+                                      <label className="block text-sm font-medium mb-2">Follow-up Date</label>
+                                      <input
+                                        type="date"
+                                        value={followUpForm.date}
+                                        onChange={e => setFollowUpForm(f => ({ ...f, date: e.target.value }))}
+                                        min={new Date().toISOString().split("T")[0]}
+                                        className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                      />
+                                    </div>
+                                    <div className="mb-6">
+                                      <label className="block text-sm font-medium mb-2">Notes</label>
+                                      <textarea
+                                        value={followUpForm.notes}
+                                        onChange={e => setFollowUpForm(f => ({ ...f, notes: e.target.value }))}
+                                        placeholder="Add any relevant notes here..."
+                                        className="w-full border border-gray-300 rounded-md px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                        required
+                                      />
+                                    </div>
+                                    <button
+                                      type="submit"
+                                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-md shadow-md transition"
+                                    >
+                                      Submit
+                                    </button>
+                                  </form>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* End Conversation Dialog */}
+                            {showEndConvoDialog && (
+                              <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+                                <div className="bg-white text-black rounded-xl shadow-lg w-full max-w-lg mx-auto p-6 md:p-8">
+                                  <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-semibold">End Conversation</h3>
+                                    <button
+                                      onClick={() => {
+                                        setShowEndConvoDialog(false);
+                                        setEndConvoForm({ type: 'positive', notes: '' });
+                                      }}
+                                      className="text-gray-500 hover:text-red-500 transition"
+                                    >
+                                      <X size={24} />
+                                    </button>
+                                  </div>
+                                  <form
+                                    onSubmit={async (e) => {
+                                      e.preventDefault();
+                                      try {
+                                        console.log("End Conversation Form Data:", endConvoForm);
+                                        await axios.post(`/lead/${activeLeadId}/end-convo`, {
+                                          type: endConvoForm.type,
+                                          notes: endConvoForm.notes,
+                                        });
+                                        toast.success('Conversation ended successfully!');
+                                        setShowEndConvoDialog(false);
+                                        setEndConvoForm({ type: 'positive', notes: '' });
+                                      } catch (err: any) {
+                                        toast.error(err?.response?.data?.message || 'Failed to end conversation.');
+                                      }
+                                    }}
+                                  >
+                                    <div className="mb-5">
+                                      <label className="block text-sm font-medium mb-2">Type</label>
+                                      <div className="flex gap-6">
+                                        {['positive', 'negative'].map((type) => (
+                                          <label key={type} className="flex items-center gap-2 text-sm">
+                                            <input
+                                              type="radio"
+                                              name="type"
+                                              value={type}
+                                              checked={endConvoForm.type === type}
+                                              onChange={() => setEndConvoForm(f => ({ ...f, type }))}
+                                              className="accent-blue-600"
+                                            />
+                                            <span className="capitalize">{type}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div className="mb-6">
+                                      <label className="block text-sm font-medium mb-2">Notes</label>
+                                      <textarea
+                                        value={endConvoForm.notes}
+                                        onChange={e => setEndConvoForm(f => ({ ...f, notes: e.target.value }))}
+                                        placeholder="Add any relevant notes here..."
+                                        className="w-full border border-gray-300 rounded-md px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                                        required
+                                      />
+                                    </div>
+                                    <button
+                                      type="submit"
+                                      className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-md shadow-md transition"
+                                    >
+                                      Submit
+                                    </button>
+                                  </form>
+                                </div>
+                              </div>
+                            )}
+
+                            <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
                               <Edit size={18} />
                             </button>
                             <button
                               onClick={() => handleDeleteClick(lead.id)}
-                              className="text-gray-400 hover:text-red-600 transition-colors"
+                              className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
                             >
                               <Trash2 size={18} />
                             </button>
@@ -569,7 +775,156 @@ const App: React.FC = () => {
                         <p className="text-sm text-gray-500">{lead.leadInfo.position}</p>
                       </div>
                       <div className="flex space-x-2">
-                        
+                        {NoCatOnlyAssign && (
+                          <>
+                            <button onClick={() => { setActiveLeadId(lead.id); setShowFollowUpDialog(true); }} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
+                              <MessageSquare size={18} />
+                            </button>
+                            <button
+                              onClick={() => { setActiveLeadId(lead.id); setShowEndConvoDialog(true); }}
+                              className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                            >
+                              <PhoneOffIcon size={18} />
+                            </button>
+                          </>
+                        )}
+                        {/* FollowUp Dialog */}
+                        {showFollowUpDialog && (
+                          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-opacity-40">
+                            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-auto p-8">
+                              <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-gray-800">Add Follow-up</h3>
+                                <button
+                                  onClick={() => {
+                                    setShowFollowUpDialog(false);
+                                    setFollowUpForm({ date: '', notes: '' });
+                                  }}
+                                  className="text-gray-400 hover:text-red-500 transition"
+                                >
+                                  <X size={24} />
+                                </button>
+                              </div>
+                              <form
+                                onSubmit={async (e) => {
+                                  e.preventDefault();
+                                  try {
+                                    await axios.post(`/lead/${activeLeadId}/follow-up`, {
+                                      // leadId: activeLeadId,
+                                      followUpDate: followUpForm.date,
+                                      notes: followUpForm.notes,
+                                    });
+                                    toast.success('Follow-up added successfully!');
+                                    setShowFollowUpDialog(false);
+                                    setFollowUpForm({ date: '', notes: '' });
+                                  } catch (err: any) {
+                                    toast.error(err?.response?.data?.message || 'Failed to add follow-up.');
+                                  }
+                                }}
+                              >
+                                <div className="mb-5">
+                                  <label className="block text-sm font-medium mb-2 text-gray-700">Follow-up Date</label>
+                                  <input
+                                    type="date"
+                                    value={followUpForm.date}
+                                    onChange={e => setFollowUpForm(f => ({ ...f, date: e.target.value }))}
+                                    min={new Date().toISOString().split("T")[0]}
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                    required
+                                  />
+                                </div>
+                                <div className="mb-6">
+                                  <label className="block text-sm font-medium mb-2 text-gray-700">Notes</label>
+                                  <textarea
+                                    value={followUpForm.notes}
+                                    onChange={e => setFollowUpForm(f => ({ ...f, notes: e.target.value }))}
+                                    placeholder="Add any relevant notes here..."
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm resize-none"
+                                    required
+                                  />
+                                </div>
+                                <button
+                                  type="submit"
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition duration-200"
+                                >
+                                  Submit
+                                </button>
+                              </form>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* --- EndConvo Modal --- */}
+
+                        {showEndConvoDialog && (
+                          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-opacity-40">
+                            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-auto p-8">
+                              <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-gray-800">End Conversation</h3>
+                                <button
+                                  onClick={() => {
+                                    setShowEndConvoDialog(false);
+                                    setEndConvoForm({ type: 'positive', notes: '' });
+                                  }}
+                                  className="text-gray-400 hover:text-red-500 transition"
+                                >
+                                  <X size={24} />
+                                </button>
+                              </div>
+                              <form
+                                onSubmit={async (e) => {
+                                  e.preventDefault();
+                                  try {
+                                    await axios.post(`/lead/${activeLeadId}/end-convo`, {
+                                      // leadId: activeLeadId,
+                                      type: endConvoForm.type,
+                                      notes: endConvoForm.notes,
+                                    });
+                                    toast.success('Conversation ended successfully!');
+                                    setShowEndConvoDialog(false);
+                                    setEndConvoForm({ type: 'positive', notes: '' });
+                                  } catch (err: any) {
+                                    toast.error(err?.response?.data?.message || 'Failed to end conversation.');
+                                  }
+                                }}
+                              >
+                                <div className="mb-5">
+                                  <label className="block text-sm font-medium mb-2 text-gray-700">Type</label>
+                                  <div className="flex gap-6">
+                                    {['positive', 'negative'].map((type) => (
+                                      <label key={type} className="flex items-center space-x-2 text-sm">
+                                        <input
+                                          type="radio"
+                                          name="type"
+                                          value={type}
+                                          checked={endConvoForm.type === type}
+                                          onChange={() => setEndConvoForm(f => ({ ...f, type }))}
+                                          className="accent-blue-600"
+                                        />
+                                        <span className="capitalize">{type}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="mb-6">
+                                  <label className="block text-sm font-medium mb-2 text-gray-700">Notes</label>
+                                  <textarea
+                                    value={endConvoForm.notes}
+                                    onChange={e => setEndConvoForm(f => ({ ...f, notes: e.target.value }))}
+                                    placeholder="Add any relevant notes here..."
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm resize-none"
+                                    required
+                                  />
+                                </div>
+                                <button
+                                  type="submit"
+                                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg shadow-md transition duration-200"
+                                >
+                                  Submit
+                                </button>
+                              </form>
+                            </div>
+                          </div>
+                        )}
                         <button className="text-gray-400 hover:text-yellow-600 transition-colors">
                           <Edit size={18} />
                         </button>
@@ -604,7 +959,7 @@ const App: React.FC = () => {
                         </div>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Assigned To:</span> {lead?.assignedTo?.name || 'Unassigned'}
+                        <span className="font-medium text-gray-700">{NoCatOnlyAssign ? 'Category:' : 'Assigned To:'}</span> {NoCatOnlyAssign ? (lead.category || 'Un-Categorized') : (lead?.assignedTo?.name || 'Unassigned')}
                       </div>
                       <div>
                         <span className="font-medium text-gray-700">Last Contact:</span> {lead.lastContact}
@@ -631,6 +986,6 @@ const App: React.FC = () => {
       />
     </div>
   );
-};
+}
 
 export default App;
