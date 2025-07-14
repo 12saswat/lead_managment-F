@@ -58,7 +58,7 @@ export default function AssignmentTable({ assignments }: Props) {
 
                             <div className="text-sm text-gray-600 text-left sm:text-right dark:text-gray-300 mt-2 sm:mt-0">
                                 Assigned to &nbsp;
-                                <span className="font-bold text-lg text-gray-800 dark:text-white">{" "+a.assignedTo.toUpperCase()}</span>
+                                <span className="font-bold text-lg text-gray-800 dark:text-white">{" " + a.assignedTo.toUpperCase()}</span>
                                 {/* Due Date */}
                                 <p className="text-sm text-gray-500 dark:text-gray-300 mt-2">Due Date: {a.dueDate}</p>
                             </div>
@@ -71,3 +71,9 @@ export default function AssignmentTable({ assignments }: Props) {
         </div>
     );
 }
+
+// Add Worker type export for use in other components
+export type Worker = {
+    id: string;
+    name: string;
+};
