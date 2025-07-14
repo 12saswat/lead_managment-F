@@ -6,7 +6,7 @@ interface Category {
     title: string;
 }
 interface Worker {
-    id: string;
+    _id: string;
     name: string;
 }
 
@@ -106,7 +106,7 @@ const OptionsAndSubmitSection: React.FC<OptionsAndSubmitSectionProps> = ({
                         <>
                             <option value="">Select Worker</option>
                             {workers.map((worker, index) => (
-                                <option key={index} value={worker.id}>
+                                <option key={index} value={worker._id}>
                                     {worker.name}
                                 </option>
                             ))}
