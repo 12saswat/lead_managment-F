@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, KeyRound, Lock } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import axios from "axios";
+import axios from "@/lib/Axios";
 import { toast } from "sonner";
 
 const PasswordResetForm = () => {
@@ -22,7 +22,7 @@ const PasswordResetForm = () => {
     const handleVerifyOtp = async () => {
         try {
             setLoading(true);
-            const res = await axios.post(`http://localhost:8080/api/v1/worker/verify-otp/${userId}`, {
+            const res = await axios.post(`/worker/verify-otp/${userId}`, {
                 otp,
             });
 
@@ -50,7 +50,7 @@ const PasswordResetForm = () => {
 
         try {
             setLoading(true);
-            const res = await axios.post(`http://localhost:8080/api/v1/worker/reset-password/${userId}`, {
+            const res = await axios.post(`/worker/reset-password/${userId}`, {
                 newPassword,
             });
 
