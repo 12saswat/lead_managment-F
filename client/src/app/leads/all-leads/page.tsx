@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import axios from "@/lib/Axios";
 import Pagination from '@/../components/Pagination';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns/format';
+import { parse } from 'date-fns/parse';
 
 // Define the Lead interface
 interface Lead {
@@ -22,6 +27,7 @@ interface Lead {
   priority: 'high' | 'medium' | 'low';
   assignedTo: { name: string | null }; // Allowed null for unassigned leads
   category: string;
+  catColor: string;
   lastContact: string;
   followUpDate: string;
 }
@@ -51,6 +57,7 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
       priority: lead.priority || "low",
       assignedTo: lead.assignedTo || { name: "Unassigned" },
       category: lead.category ? lead.category.title : "Un-Categorized",
+      catColor: lead.category ? lead.category.color : "#d1d5db",
       lastContact: new Date(lead.createdAt).toLocaleDateString("en-GB"),
       followUpDate: lead.followUpDates && lead.followUpDates.length > 0 ? new Date(lead.followUpDates[lead.followUpDates.length - 1]).toLocaleDateString("en-GB") : "",
     }));
@@ -209,8 +216,8 @@ const App: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
   const [showEndConvoDialog, setShowEndConvoDialog] = useState(false);
-  const [followUpForm, setFollowUpForm] = useState({ date: '', notes: '' });
-  const [endConvoForm, setEndConvoForm] = useState({ type: 'positive', notes: '' });
+  const [followUpForm, setFollowUpForm] = useState({ date: '', conclusion: '' });
+  const [endConvoForm, setEndConvoForm] = useState({ type: 'positive', conclusion: '' });
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   useEffect(() => {
     const cookies = document.cookie.split(';').map(c => c.trim());
@@ -419,7 +426,7 @@ const App: React.FC = () => {
       <main className="px-4 sm:px-6 lg:px-8 py-6">
         {/* Search and Filter Section */}
         <div className="mb-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex flex-col sm:flex-row gap-4 items-center bg-white px-4 py-4 rounded-xl shadow-sm border">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -435,19 +442,34 @@ const App: React.FC = () => {
             {/* Date Filter for worker */}
             {showDateFilter && (
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Select by Follow-Up Date:</label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={e => setSelectedDate(e.target.value)}
-                  className="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <label className="text-sm font-medium text-gray-400">Select by Follow-Up Date:</label>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-[180px] justify-start text-left font-normal"
+                    >
+                      {selectedDate ? format(new Date(selectedDate), "PPP") : <span className="text-gray-400">Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate ? parse(selectedDate, "yyyy-MM-dd", new Date()) : undefined}
+                      onSelect={(date) => {
+                        if (date) setSelectedDate(format(date, "yyyy-MM-dd"));
+                      }}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    />
+                  </PopoverContent>
+                </Popover>
+
                 {selectedDate && (
                   <button
                     type="button"
                     className="ml-1 text-gray-400 hover:text-red-500"
-                    onClick={() => setSelectedDate('')}
+                    onClick={() => setSelectedDate("")}
                   >
                     <X size={18} />
                   </button>
@@ -581,8 +603,21 @@ const App: React.FC = () => {
                             {lead.priority}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
-                          {NoCatOnlyAssign ? (lead.category || 'Un-Categorized') : (lead.assignedTo.name || 'Unassigned')}
+                        <td className="px-7 py-5 whitespace-nowrap text-sm text-white dark:text-black">
+                          {NoCatOnlyAssign ? (
+                            <span
+                              className="px-2 py-1 text-xs font-semibold rounded-full text-white"
+                              style={{
+                                backgroundColor: lead.catColor || "#6b7280",
+                              }}
+                            >
+                              {lead.category || "Un-Categorized"}
+                            </span>
+                          ) : (
+                            <span className="text-black dark:text-white">
+                              {lead.assignedTo?.name || "Unassigned"}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 dark:text-white whitespace-nowrap text-sm text-gray-900">
                           {lead.lastContact}
@@ -611,7 +646,7 @@ const App: React.FC = () => {
                                     <button
                                       onClick={() => {
                                         setShowFollowUpDialog(false);
-                                        setFollowUpForm({ date: '', notes: '' });
+                                        setFollowUpForm({ date: '', conclusion: '' });
                                       }}
                                       className="text-gray-500 hover:text-red-500 transition"
                                     >
@@ -624,11 +659,12 @@ const App: React.FC = () => {
                                       try {
                                         await axios.post(`/lead/${activeLeadId}/follow-up`, {
                                           followUpDate: followUpForm.date,
-                                          notes: followUpForm.notes,
+                                          conclusion: followUpForm.conclusion,
                                         });
+                                        console.log("Follow-up Form Data:", followUpForm);
                                         toast.success('Follow-up added successfully!');
                                         setShowFollowUpDialog(false);
-                                        setFollowUpForm({ date: '', notes: '' });
+                                        setFollowUpForm({ date: '', conclusion: '' });
                                       } catch (err: any) {
                                         toast.error(err?.response?.data?.message || 'Failed to add follow-up.');
                                       }
@@ -646,10 +682,10 @@ const App: React.FC = () => {
                                       />
                                     </div>
                                     <div className="mb-6">
-                                      <label className="block text-sm font-medium mb-2">Notes</label>
+                                      <label className="block text-sm font-medium mb-2">Conclusion</label>
                                       <textarea
-                                        value={followUpForm.notes}
-                                        onChange={e => setFollowUpForm(f => ({ ...f, notes: e.target.value }))}
+                                        value={followUpForm.conclusion}
+                                        onChange={e => setFollowUpForm(f => ({ ...f, conclusion: e.target.value }))}
                                         placeholder="Add any relevant notes here..."
                                         className="w-full border border-gray-300 rounded-md px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                                         required
@@ -675,7 +711,7 @@ const App: React.FC = () => {
                                     <button
                                       onClick={() => {
                                         setShowEndConvoDialog(false);
-                                        setEndConvoForm({ type: 'positive', notes: '' });
+                                        setEndConvoForm({ type: 'positive', conclusion: '' });
                                       }}
                                       className="text-gray-500 hover:text-red-500 transition"
                                     >
@@ -689,11 +725,11 @@ const App: React.FC = () => {
                                         console.log("End Conversation Form Data:", endConvoForm);
                                         await axios.post(`/lead/${activeLeadId}/end-convo`, {
                                           type: endConvoForm.type,
-                                          notes: endConvoForm.notes,
+                                          conclusion: endConvoForm.conclusion,
                                         });
                                         toast.success('Conversation ended successfully!');
                                         setShowEndConvoDialog(false);
-                                        setEndConvoForm({ type: 'positive', notes: '' });
+                                        setEndConvoForm({ type: 'positive', conclusion: '' });
                                       } catch (err: any) {
                                         toast.error(err?.response?.data?.message || 'Failed to end conversation.');
                                       }
@@ -718,10 +754,10 @@ const App: React.FC = () => {
                                       </div>
                                     </div>
                                     <div className="mb-6">
-                                      <label className="block text-sm font-medium mb-2">Notes</label>
+                                      <label className="block text-sm font-medium mb-2">Conclusion</label>
                                       <textarea
-                                        value={endConvoForm.notes}
-                                        onChange={e => setEndConvoForm(f => ({ ...f, notes: e.target.value }))}
+                                        value={endConvoForm.conclusion}
+                                        onChange={e => setEndConvoForm(f => ({ ...f, conclusion: e.target.value }))}
                                         placeholder="Add any relevant notes here..."
                                         className="w-full border border-gray-300 rounded-md px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
                                         required
@@ -797,7 +833,7 @@ const App: React.FC = () => {
                                 <button
                                   onClick={() => {
                                     setShowFollowUpDialog(false);
-                                    setFollowUpForm({ date: '', notes: '' });
+                                    setFollowUpForm({ date: '', conclusion: '' });
                                   }}
                                   className="text-gray-400 hover:text-red-500 transition"
                                 >
@@ -811,11 +847,11 @@ const App: React.FC = () => {
                                     await axios.post(`/lead/${activeLeadId}/follow-up`, {
                                       // leadId: activeLeadId,
                                       followUpDate: followUpForm.date,
-                                      notes: followUpForm.notes,
+                                      conclusion: followUpForm.conclusion,
                                     });
                                     toast.success('Follow-up added successfully!');
                                     setShowFollowUpDialog(false);
-                                    setFollowUpForm({ date: '', notes: '' });
+                                    setFollowUpForm({ date: '', conclusion: '' });
                                   } catch (err: any) {
                                     toast.error(err?.response?.data?.message || 'Failed to add follow-up.');
                                   }
@@ -833,11 +869,11 @@ const App: React.FC = () => {
                                   />
                                 </div>
                                 <div className="mb-6">
-                                  <label className="block text-sm font-medium mb-2 text-gray-700">Notes</label>
+                                  <label className="block text-sm font-medium mb-2 text-gray-700">Conclusion</label>
                                   <textarea
-                                    value={followUpForm.notes}
-                                    onChange={e => setFollowUpForm(f => ({ ...f, notes: e.target.value }))}
-                                    placeholder="Add any relevant notes here..."
+                                    value={followUpForm.conclusion}
+                                    onChange={e => setFollowUpForm(f => ({ ...f, conclusion: e.target.value }))}
+                                    placeholder="Add any relevant conclusion here..."
                                     className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm resize-none"
                                     required
                                   />
@@ -863,7 +899,7 @@ const App: React.FC = () => {
                                 <button
                                   onClick={() => {
                                     setShowEndConvoDialog(false);
-                                    setEndConvoForm({ type: 'positive', notes: '' });
+                                    setEndConvoForm({ type: 'positive', conclusion: '' });
                                   }}
                                   className="text-gray-400 hover:text-red-500 transition"
                                 >
@@ -877,11 +913,11 @@ const App: React.FC = () => {
                                     await axios.post(`/lead/${activeLeadId}/end-convo`, {
                                       // leadId: activeLeadId,
                                       type: endConvoForm.type,
-                                      notes: endConvoForm.notes,
+                                      conclusion: endConvoForm.conclusion,
                                     });
                                     toast.success('Conversation ended successfully!');
                                     setShowEndConvoDialog(false);
-                                    setEndConvoForm({ type: 'positive', notes: '' });
+                                    setEndConvoForm({ type: 'positive', conclusion: '' });
                                   } catch (err: any) {
                                     toast.error(err?.response?.data?.message || 'Failed to end conversation.');
                                   }
@@ -906,11 +942,11 @@ const App: React.FC = () => {
                                   </div>
                                 </div>
                                 <div className="mb-6">
-                                  <label className="block text-sm font-medium mb-2 text-gray-700">Notes</label>
+                                  <label className="block text-sm font-medium mb-2 text-gray-700">Conclusion</label>
                                   <textarea
-                                    value={endConvoForm.notes}
-                                    onChange={e => setEndConvoForm(f => ({ ...f, notes: e.target.value }))}
-                                    placeholder="Add any relevant notes here..."
+                                    value={endConvoForm.conclusion}
+                                    onChange={e => setEndConvoForm(f => ({ ...f, conclusion: e.target.value }))}
+                                    placeholder="Add any relevant conclusion here..."
                                     className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm resize-none"
                                     required
                                   />
