@@ -157,7 +157,7 @@ export default function NewAssignmentDialog() {
     // }
     
     try {
-      await axios.post("/lead/assign", {
+      await axios.post("/assign", {
         leadIds: selectedLeadIds,
         assignedTo: form.worker,
         priority: form.priority.toLowerCase(),
