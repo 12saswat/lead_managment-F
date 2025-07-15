@@ -1,0 +1,474 @@
+"use client";
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, Filter, Edit, Trash2, Calendar, User, Building, Phone, ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import axios from '@/lib/Axios';
+// --- TypeScript Interfaces ---
+interface Category {
+  _id: string;
+  title: string;
+  color: string;
+}
+
+interface Worker {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface Conversation {
+  id: string;
+  leadName: string;
+  workerName: string;
+  category: string;
+  categoryColor: string;
+  followupDate: string;
+  conclusion: string;
+  status: 'Active' | 'Pending' | 'Closed'; // Enforcing specific status values
+  conversationEnd: 'positive' | 'negative' | 'not confirmed'; // Enforcing specific end values
+  createdAt: string;
+}
+
+
+const dummyConversations: Conversation[] = [
+  {
+    id: '1',
+    leadName: 'Alice Cooper',
+    workerName: 'John Doe',
+    category: 'Sales',
+    categoryColor: '#3b82f6',
+    followupDate: '2024-07-20',
+    conclusion: 'Customer is very interested in our premium package. They want to schedule a demo next week and discuss pricing options. The budget seems to be around $50,000 annually. They have a team of 25 people who would be using the system.',
+    status: 'Active',
+    conversationEnd: 'positive',
+    createdAt: '2024-07-15T10:30:00Z'
+  },
+  {
+    id: '2',
+    leadName: 'Bob Wilson',
+    workerName: 'Jane Smith',
+    category: 'Marketing',
+    categoryColor: '#10b981',
+    followupDate: '2024-07-18',
+    conclusion: 'Lead expressed concerns about the pricing structure and requested more information about the basic plan. They seem hesitant but not completely disinterested.',
+    status: 'Pending',
+    conversationEnd: 'not confirmed',
+    createdAt: '2024-07-14T15:45:00Z'
+  },
+  {
+    id: '3',
+    leadName: 'Charlie Brown',
+    workerName: 'Mike Johnson',
+    category: 'Support',
+    categoryColor: '#f59e0b',
+    followupDate: '2024-07-22',
+    conclusion: 'Customer is not satisfied with the current solution and is looking for alternatives. They mentioned budget constraints and timeline issues.',
+    status: 'Closed',
+    conversationEnd: 'negative',
+    createdAt: '2024-07-13T09:15:00Z'
+  },
+  {
+    id: '4',
+    leadName: 'Diana Prince',
+    workerName: 'Sarah Wilson',
+    category: 'Technical',
+    categoryColor: '#ef4444',
+    followupDate: '2024-07-25',
+    conclusion: 'Technical discussion went well. Customer understands the implementation requirements and is ready to proceed with the next phase.',
+    status: 'Active',
+    conversationEnd: 'positive',
+    createdAt: '2024-07-12T14:20:00Z'
+  }
+];
+
+const ConversationComponent = () => {
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [workerFilter, setWorkerFilter] = useState<string>('all');
+  const [conversations, setConversations] = useState<Conversation[]>(dummyConversations);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({});
+  const [editingConversation, setEditingConversation] = useState<Conversation | null>(null);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState<boolean>(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
+
+  // In real implementation, you would fetch data like this:
+  useEffect(() => {
+    // Fetch categories
+    axios.get("/category").then((res) => {
+      if (Array.isArray(res.data.data)) setCategories(res.data.data as Category[]);
+    });
+    
+    // Fetch workers
+    axios.get("/worker/get-all-workers").then((res) => {
+      if (Array.isArray(res.data.data)) setWorkers(res.data.data as Worker[]);
+    });
+    
+//     // Fetch conversations
+//     axios.get("/conversations").then((res) => {
+//       if (Array.isArray(res.data.data)) setConversations(res.data.data as Conversation[]);
+//     });
+  }, []);
+
+
+  const filteredConversations = useMemo(() => {
+    let result: Conversation[] = conversations;
+    
+    // Filter by category
+    if (categoryFilter && categoryFilter !== 'all') {
+      const selectedCategory = categories.find(cat => cat._id === categoryFilter);
+      result = result.filter(conv => conv.category === selectedCategory?.title);
+    }
+    
+    // Filter by worker
+    if (workerFilter && workerFilter !== 'all') {
+      const selectedWorker = workers.find(worker => worker._id === workerFilter);
+      result = result.filter(conv => conv.workerName === selectedWorker?.name);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      result = result.filter(conv => 
+        conv.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        conv.workerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        conv.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        conv.conclusion.toLowerCase().includes(searchTerm.toLowerCase()) // Added conclusion to search
+      );
+    }
+    
+    return result;
+  }, [conversations, searchTerm, categoryFilter, workerFilter, categories, workers]);
+
+  const toggleCardExpansion = (id: string) => {
+    setExpandedCards(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const handleUpdate = (conversation: Conversation) => {
+    setEditingConversation(conversation);
+    setUpdateDialogOpen(true);
+  };
+
+  const handleDelete = (conversation: Conversation) => {
+    setConversationToDelete(conversation);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmUpdate = () => {
+    if (editingConversation) {
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === editingConversation.id ? editingConversation : conv
+        )
+      );
+      setUpdateDialogOpen(false);
+      setEditingConversation(null);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (conversationToDelete) {
+      setConversations(prev => 
+        prev.filter(conv => conv.id !== conversationToDelete.id)
+      );
+      setDeleteDialogOpen(false);
+      setConversationToDelete(null);
+    }
+  };
+
+  const getStatusColor = (status: Conversation['status']) => {
+    switch (status.toLowerCase()) {
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'closed': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+      default: return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+    }
+  };
+
+  const getConversationEndColor = (end: Conversation['conversationEnd']) => {
+    switch (end.toLowerCase()) {
+      case 'positive': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'negative': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'not confirmed': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
+  const truncateText = (text: string, maxLength: number = 150) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Conversation Management
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage and track all lead conversations
+          </p>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6 shadow-sm">
+          <div className="grid grid-cols-1 md:flex justify-between gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search by lead name, worker, category, or conclusion..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-150"
+              />
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex items-center gap-4">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category._id} value={category._id}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: category.color }}
+                      />
+                      {category.title}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Worker Filter */}
+            <Select value={workerFilter} onValueChange={setWorkerFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by worker" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Workers</SelectItem>
+                {workers.map(worker => (
+                  <SelectItem key={worker._id} value={worker._id}>
+                    {worker.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            </div>
+          </div>
+        </div>
+        {/* Conversations Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredConversations.map(conversation => (
+            <Card key={conversation.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg text-gray-900 dark:text-white mb-2">
+                      {conversation.leadName}
+                    </CardTitle>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <User className="h-4 w-4" />
+                      {conversation.workerName}
+                    </div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: conversation.categoryColor }}
+                      />
+                      <span className="text-sm font-medium">{conversation.category}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleUpdate(conversation)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(conversation)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  {/* Status and Conversation End */}
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className={getStatusColor(conversation.status)}>
+                      {conversation.status}
+                    </Badge>
+                    <Badge className={getConversationEndColor(conversation.conversationEnd)}>
+                      {conversation.conversationEnd}
+                    </Badge>
+                  </div>
+
+                  {/* Follow-up Date */}
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <Calendar className="h-4 w-4" />
+                    Follow-up: {new Date(conversation.followupDate).toLocaleDateString()}
+                  </div>
+
+                  {/* Conclusion */}
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">Conclusion:</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {expandedCards[conversation.id] 
+                        ? conversation.conclusion 
+                        : truncateText(conversation.conclusion)
+                      }
+                    </p>
+                    {conversation.conclusion.length > 150 && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => toggleCardExpansion(conversation.id)}
+                        className="mt-2 p-0 h-auto text-blue-600 dark:text-blue-400"
+                      >
+                        {expandedCards[conversation.id] ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-1" />
+                            <span className="text-sm -ml-1">See less</span>
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-1" />
+                            <span className="text-sm -ml-1">See more</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* No Results */}
+        {filteredConversations.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">No conversations found matching your criteria.</p>
+          </div>
+        )}
+        {/* Update Dialog */}
+        <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Update Conversation</DialogTitle>
+            </DialogHeader>
+            {editingConversation && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="followupDate"className='mb-2'>Follow-up Date</Label>
+                  <Input
+                    id="followupDate"
+                    type="date"
+                    value={editingConversation.followupDate}
+                    onChange={(e) => setEditingConversation({
+                      ...editingConversation,
+                      followupDate: e.target.value
+                    })}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="conclusion" className='mb-2'>Conclusion</Label>
+                  <Textarea
+                    id="conclusion"
+                    value={editingConversation.conclusion}
+                    onChange={(e) => setEditingConversation({
+                      ...editingConversation,
+                      conclusion: e.target.value
+                    })}
+                    rows={4}
+                    className='min-h-50 dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="conversationEnd"className='mb-2'>Conversation End</Label>
+                  <Select 
+                    value={editingConversation.conversationEnd} 
+                    onValueChange={(value: Conversation['conversationEnd']) => setEditingConversation({
+                      ...editingConversation,
+                      conversationEnd: value
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="positive">Positive</SelectItem>
+                      <SelectItem value="negative">Negative</SelectItem>
+                      <SelectItem value="not confirmed">Not Confirmed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setUpdateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={confirmUpdate}>
+                    Update Conversation
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the conversation 
+                with {conversationToDelete?.leadName}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
+};
+
+export default ConversationComponent;
