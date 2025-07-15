@@ -82,7 +82,7 @@ export default function SignUpPage() {
 
       toast.success("Registered successfully!");
       setTimeout(() => {
-        router.push("/worker/dashboard");
+        router.push("/worker/auth/login");
       }, 2000);
     } catch (err: any) {
       const msg = err.response?.data?.message || "Registration failed";

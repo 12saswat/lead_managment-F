@@ -188,8 +188,8 @@ export default function NewAssignmentDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-0 overflow-hidden">
-        <DialogHeader className="border-b border-gray-200 dark:border-gray-700 p-6">
+      <DialogContent className="bg-white h-[95vh] dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-1 overflow-hidden">
+        <DialogHeader className="border-b border-gray-200 dark:border-gray-700 p-6 ">
           <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight text-center">
             Assign Leads
           </DialogTitle>
@@ -476,7 +476,7 @@ export default function NewAssignmentDialog() {
                   value={form.notes}
                   onChange={handleChange}
                   placeholder="Add any relevant notes here..."
-                  className="dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 min-h-[150px]"
+                  className="dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 min-h-[80px]"
                 />
               </div>
 
