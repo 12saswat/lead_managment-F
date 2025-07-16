@@ -57,7 +57,6 @@ export default function NewAssignmentDialog() {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({
-    category: "",
     priority: "medium",
     worker: "",
     dueDate: "",
@@ -119,9 +118,6 @@ export default function NewAssignmentDialog() {
   const handlePriority = (value: string) =>
     setForm({ ...form, priority: value });
 
-  const handleCategory = (value: string) =>
-    setForm({ ...form, category: value });
-
   const handleWorker = (value: string) =>
     setForm({ ...form, worker: value });
 
@@ -155,20 +151,21 @@ export default function NewAssignmentDialog() {
     //   toast.error("Please select worker, category, and at least one lead.");
     //   return;
     // }
-    
+    console.log("bhai ya assignment log ha bro");
+    console.log("bhai ya form ha >>",selectedLeadIds,form);
     try {
-      await axios.post("/lead/assign", {
+      await axios.post("lead/assign", {
         leadIds: selectedLeadIds,
         assignedTo: form.worker,
         priority: form.priority.toLowerCase(),
         dueDate: form.dueDate,
         notes: form.notes,
-        category: form.category,
       });
+      
+      
       toast.success("Leads assigned successfully!");
       setOpen(false);
       setForm({
-        category: "",
         priority: "medium",
         worker: "",
         dueDate: "",
@@ -176,6 +173,8 @@ export default function NewAssignmentDialog() {
       });
       setSelectedLeadIds([]);
     } catch (err: any) {
+      console.log("error ha bhai>>",err);
+      
       toast.error(err?.response?.data?.message || "Failed to assign leads.");
     }
   };

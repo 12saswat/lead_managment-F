@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import axios from "@/lib/Axios";
 import React, { useEffect, useState } from "react";
+import NewCampaignDialog from "../../../../components/CampaignDialog";
 
 // Define the Lead interface to match the backend response structure
 interface Lead {
@@ -153,7 +154,8 @@ export default function ManagerAssignmentsPage() {
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
                     Lead Assignments
                 </h1>
-                <NewAssignmentDialog />
+                
+               
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
