@@ -66,7 +66,7 @@ const items = [
   },
   {
     title: "Campaigns",
-    url: "#",
+    url: "/manager/campaign",
     icon: Mail,
   },
   {
