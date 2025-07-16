@@ -8,6 +8,7 @@ import {
   Briefcase,
   Mail,
   FileText,
+  MessageSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -59,8 +60,13 @@ const items = [
     icon: Briefcase,
   },
   {
+    title: "Conversation",
+    url: "/leads/conversation",
+    icon: MessageSquare,
+  },
+  {
     title: "Campaigns",
-    url: "#",
+    url: "/manager/campaign",
     icon: Mail,
   },
   {

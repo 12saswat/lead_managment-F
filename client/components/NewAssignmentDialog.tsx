@@ -57,7 +57,6 @@ export default function NewAssignmentDialog() {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({
-    category: "",
     priority: "medium",
     worker: "",
     dueDate: "",
@@ -119,9 +118,6 @@ export default function NewAssignmentDialog() {
   const handlePriority = (value: string) =>
     setForm({ ...form, priority: value });
 
-  const handleCategory = (value: string) =>
-    setForm({ ...form, category: value });
-
   const handleWorker = (value: string) =>
     setForm({ ...form, worker: value });
 
@@ -155,20 +151,21 @@ export default function NewAssignmentDialog() {
     //   toast.error("Please select worker, category, and at least one lead.");
     //   return;
     // }
-    
+    console.log("bhai ya assignment log ha bro");
+    console.log("bhai ya form ha >>",selectedLeadIds,form);
     try {
-      await axios.post("/assign", {
+      await axios.post("lead/assign", {
         leadIds: selectedLeadIds,
         assignedTo: form.worker,
         priority: form.priority.toLowerCase(),
         dueDate: form.dueDate,
         notes: form.notes,
-        category: form.category,
       });
+      
+      
       toast.success("Leads assigned successfully!");
       setOpen(false);
       setForm({
-        category: "",
         priority: "medium",
         worker: "",
         dueDate: "",
@@ -176,6 +173,8 @@ export default function NewAssignmentDialog() {
       });
       setSelectedLeadIds([]);
     } catch (err: any) {
+      console.log("error ha bhai>>",err);
+      
       toast.error(err?.response?.data?.message || "Failed to assign leads.");
     }
   };
@@ -188,8 +187,8 @@ export default function NewAssignmentDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-0 overflow-hidden">
-        <DialogHeader className="border-b border-gray-200 dark:border-gray-700 p-6">
+      <DialogContent className="bg-white h-[95vh] dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-1 overflow-hidden">
+        <DialogHeader className="border-b border-gray-200 dark:border-gray-700 p-6 ">
           <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight text-center">
             Assign Leads
           </DialogTitle>
@@ -476,7 +475,7 @@ export default function NewAssignmentDialog() {
                   value={form.notes}
                   onChange={handleChange}
                   placeholder="Add any relevant notes here..."
-                  className="dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 min-h-[150px]"
+                  className="dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 min-h-[80px]"
                 />
               </div>
 

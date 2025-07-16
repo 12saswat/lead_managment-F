@@ -1,4 +1,4 @@
-import { LogOut, Plus, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, FileText } from "lucide-react"
+import { LogOut, Plus, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, FileText, MessageSquare } from "lucide-react"
 import { useParams, usePathname } from "next/navigation";
 import {
   Sidebar,
@@ -52,6 +52,11 @@ const items = [
     title: "Bulk Lead",
     url: "/leads/upload-leads-bulk",
     icon: Copy,
+  },
+  {
+    title: "Conversation",
+    url: "/leads/conversation",
+    icon: MessageSquare,
   },
   // {
   //   title: "Categories",
