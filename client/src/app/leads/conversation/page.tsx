@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import axios from '@/lib/Axios';
+import { toast } from 'sonner';
+
 // --- TypeScript Interfaces ---
 interface Category {
   _id: string;
@@ -32,22 +34,21 @@ interface Conversation {
   categoryColor: string;
   followupDate: string;
   conclusion: string;
-  status: 'Active' | 'Pending' | 'Closed'; // Enforcing specific status values
+  status: 'new' | 'in-progress' | 'follow-up' | 'closed'; // Enforcing specific status values
   conversationEnd: 'positive' | 'negative' | 'not confirmed'; // Enforcing specific end values
   createdAt: string;
 }
-
 
 const dummyConversations: Conversation[] = [
   {
     id: '1',
     leadName: 'Alice Cooper',
-    workerName: 'John Doe',
+    workerName: 'amit',
     category: 'Sales',
     categoryColor: '#3b82f6',
     followupDate: '2024-07-20',
     conclusion: 'Customer is very interested in our premium package. They want to schedule a demo next week and discuss pricing options. The budget seems to be around $50,000 annually. They have a team of 25 people who would be using the system.',
-    status: 'Active',
+    status: 'new',
     conversationEnd: 'positive',
     createdAt: '2024-07-15T10:30:00Z'
   },
@@ -59,7 +60,7 @@ const dummyConversations: Conversation[] = [
     categoryColor: '#10b981',
     followupDate: '2024-07-18',
     conclusion: 'Lead expressed concerns about the pricing structure and requested more information about the basic plan. They seem hesitant but not completely disinterested.',
-    status: 'Pending',
+    status: 'in-progress',
     conversationEnd: 'not confirmed',
     createdAt: '2024-07-14T15:45:00Z'
   },
@@ -71,7 +72,7 @@ const dummyConversations: Conversation[] = [
     categoryColor: '#f59e0b',
     followupDate: '2024-07-22',
     conclusion: 'Customer is not satisfied with the current solution and is looking for alternatives. They mentioned budget constraints and timeline issues.',
-    status: 'Closed',
+    status: 'closed',
     conversationEnd: 'negative',
     createdAt: '2024-07-13T09:15:00Z'
   },
@@ -83,7 +84,7 @@ const dummyConversations: Conversation[] = [
     categoryColor: '#ef4444',
     followupDate: '2024-07-25',
     conclusion: 'Technical discussion went well. Customer understands the implementation requirements and is ready to proceed with the next phase.',
-    status: 'Active',
+    status: 'follow-up',
     conversationEnd: 'positive',
     createdAt: '2024-07-12T14:20:00Z'
   }
@@ -96,56 +97,69 @@ const ConversationComponent = () => {
   const [conversations, setConversations] = useState<Conversation[]>(dummyConversations);
   const [categories, setCategories] = useState<Category[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
+  const [hideSelect, setHideSelect] = useState(false);
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({});
   const [editingConversation, setEditingConversation] = useState<Conversation | null>(null);
   const [updateDialogOpen, setUpdateDialogOpen] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
 
+  useEffect(() => {
+    const checkCookies = () => {
+      const cookies = document.cookie.split(";").map(cookie => cookie.trim());
+      const has001Cookie = cookies.some(cookie => cookie.startsWith("001"));
+      setHideSelect(has001Cookie);
+    };
+    checkCookies();
+  }, []);
+
   // In real implementation, you would fetch data like this:
   useEffect(() => {
     // Fetch categories
     axios.get("/category").then((res) => {
       if (Array.isArray(res.data.data)) setCategories(res.data.data as Category[]);
+      console.log("Category: ",res.data.data);
     });
-    
+
     // Fetch workers
     axios.get("/worker/get-all-workers").then((res) => {
       if (Array.isArray(res.data.data)) setWorkers(res.data.data as Worker[]);
+      console.log("All Worker: ",res.data.data);
     });
-    
-//     // Fetch conversations
-//     axios.get("/conversations").then((res) => {
-//       if (Array.isArray(res.data.data)) setConversations(res.data.data as Conversation[]);
-//     });
+
+    // Fetch conversations
+    // axios.get("/conversation/").then((res) => {
+    //   if (Array.isArray(res.data.data)) setConversations(res.data.data as Conversation[]);
+    //   console.log("All Conversation: ",res.data.data);
+    // });
   }, []);
 
 
   const filteredConversations = useMemo(() => {
     let result: Conversation[] = conversations;
-    
+
     // Filter by category
     if (categoryFilter && categoryFilter !== 'all') {
       const selectedCategory = categories.find(cat => cat._id === categoryFilter);
       result = result.filter(conv => conv.category === selectedCategory?.title);
     }
-    
+
     // Filter by worker
     if (workerFilter && workerFilter !== 'all') {
       const selectedWorker = workers.find(worker => worker._id === workerFilter);
       result = result.filter(conv => conv.workerName === selectedWorker?.name);
     }
-    
+
     // Filter by search term
     if (searchTerm) {
-      result = result.filter(conv => 
+      result = result.filter(conv =>
         conv.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         conv.workerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         conv.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         conv.conclusion.toLowerCase().includes(searchTerm.toLowerCase()) // Added conclusion to search
       );
     }
-    
+
     return result;
   }, [conversations, searchTerm, categoryFilter, workerFilter, categories, workers]);
 
@@ -168,32 +182,55 @@ const ConversationComponent = () => {
 
   const confirmUpdate = () => {
     if (editingConversation) {
-      setConversations(prev => 
-        prev.map(conv => 
+      setConversations(prev =>
+        prev.map(conv =>
           conv.id === editingConversation.id ? editingConversation : conv
         )
       );
-      setUpdateDialogOpen(false);
-      setEditingConversation(null);
+      axios.put(`/conversation/update/${editingConversation.id}`, editingConversation)
+        .then(() => {
+          setEditingConversation(null);
+          setUpdateDialogOpen(false);
+          console.log("Updated content: ", editingConversation)
+          toast.success("Conversation updated successfully");
+        })
+        .catch(err => {
+          console.error("Error updating conversation:", err);
+          toast.error("Failed to update conversation");
+        });
     }
   };
 
   const confirmDelete = () => {
     if (conversationToDelete) {
-      setConversations(prev => 
+      setConversations(prev =>
         prev.filter(conv => conv.id !== conversationToDelete.id)
       );
-      setDeleteDialogOpen(false);
-      setConversationToDelete(null);
+      axios.delete(`/conversation/delete/${conversationToDelete.id}`)
+        .then(() => {
+          setConversationToDelete(null);
+          setDeleteDialogOpen(false);
+          toast.success("Conversation deleted successfully");
+        })
+        .catch(err => {
+          console.error("Error deleting conversation:", err);
+          toast.error("Failed to delete conversation");
+        });
     }
   };
 
   const getStatusColor = (status: Conversation['status']) => {
     switch (status.toLowerCase()) {
-      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'closed': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-      default: return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'new':
+        return 'bg-blue-100 text-blue-800';
+      case 'in-progress':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'follow-up':
+        return 'bg-green-100 text-green-800';
+      case 'closed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -240,40 +277,42 @@ const ConversationComponent = () => {
 
             {/* Category Filter */}
             <div className="flex items-center gap-4">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category._id} value={category._id}>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: category.color }}
-                      />
-                      {category.title}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category._id} value={category._id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.title}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {/* Worker Filter */}
-            <Select value={workerFilter} onValueChange={setWorkerFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by worker" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Workers</SelectItem>
-                {workers.map(worker => (
-                  <SelectItem key={worker._id} value={worker._id}>
-                    {worker.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {/* Worker Filter */}
+              {!hideSelect && (
+                <Select value={workerFilter} onValueChange={setWorkerFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by worker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Workers</SelectItem>
+                    {workers.map(worker => (
+                      <SelectItem key={worker._id} value={worker._id}>
+                        {worker.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
         </div>
@@ -292,8 +331,8 @@ const ConversationComponent = () => {
                       {conversation.workerName}
                     </div>
                     <div className="flex items-center gap-2 mb-3">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
+                      <div
+                        className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: conversation.categoryColor }}
                       />
                       <span className="text-sm font-medium">{conversation.category}</span>
@@ -317,7 +356,7 @@ const ConversationComponent = () => {
                   </div>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="pt-0">
                 <div className="space-y-3">
                   {/* Status and Conversation End */}
@@ -340,8 +379,8 @@ const ConversationComponent = () => {
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                     <h4 className="font-medium text-gray-900 dark:text-white mb-2">Conclusion:</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                      {expandedCards[conversation.id] 
-                        ? conversation.conclusion 
+                      {expandedCards[conversation.id]
+                        ? conversation.conclusion
                         : truncateText(conversation.conclusion)
                       }
                     </p>
@@ -380,14 +419,14 @@ const ConversationComponent = () => {
         )}
         {/* Update Dialog */}
         <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-1/3">
             <DialogHeader>
               <DialogTitle>Update Conversation</DialogTitle>
             </DialogHeader>
             {editingConversation && (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="followupDate"className='mb-2'>Follow-up Date</Label>
+                  <Label htmlFor="followupDate" className='mb-2'>Follow-up Date</Label>
                   <Input
                     id="followupDate"
                     type="date"
@@ -398,7 +437,7 @@ const ConversationComponent = () => {
                     })}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="conclusion" className='mb-2'>Conclusion</Label>
                   <Textarea
@@ -412,11 +451,11 @@ const ConversationComponent = () => {
                     className='min-h-50 dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
                   />
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="conversationEnd"className='mb-2'>Conversation End</Label>
-                  <Select 
-                    value={editingConversation.conversationEnd} 
+                  <Label htmlFor="conversationEnd" className='mb-2'>Conversation End</Label>
+                  <Select
+                    value={editingConversation.conversationEnd}
                     onValueChange={(value: Conversation['conversationEnd']) => setEditingConversation({
                       ...editingConversation,
                       conversationEnd: value
@@ -432,7 +471,7 @@ const ConversationComponent = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="flex justify-end gap-2 pt-4">
                   <Button variant="outline" onClick={() => setUpdateDialogOpen(false)}>
                     Cancel
@@ -452,7 +491,7 @@ const ConversationComponent = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the conversation 
+                This action cannot be undone. This will permanently delete the conversation
                 with {conversationToDelete?.leadName}.
               </AlertDialogDescription>
             </AlertDialogHeader>
