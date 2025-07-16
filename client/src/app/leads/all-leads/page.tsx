@@ -62,7 +62,6 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
       followUpDate: lead.followUpDates && lead.followUpDates.length > 0 ? new Date(lead.followUpDates[lead.followUpDates.length - 1]).toLocaleDateString("en-GB") : "",
     }));
     console.log("Map data >>>", mappedLeads);
-
     return mappedLeads;
   }
   catch (error: any) {
@@ -150,7 +149,7 @@ const DropdownItem = ({
   </div>
 );
 
-// Confirmation Dialog Component
+// Confirmation Delete Dialog Component
 const ConfirmationDialog = ({
   isOpen,
   onClose,
@@ -208,8 +207,6 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
-  const [followUpDates, setFollowUp] = useState<string | null>(null);
-  const [endConvo, setEndConvo] = useState<string | null>(null);
   const [showFilterControls, setShowFilterControls] = useState(false);
   const [NoCatOnlyAssign, setNoCatOnlyAssign] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
@@ -277,7 +274,6 @@ const App: React.FC = () => {
       currentLeads = [];
     }
 
-
     // Apply search term filter
     if (searchTerm) {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -329,8 +325,9 @@ const App: React.FC = () => {
         setLeads((prevLeads) => prevLeads.filter((lead) => lead.id !== leadToDelete));
         setIsDeleteDialogOpen(false);
         setLeadToDelete(null);
-      } catch (err) {
+      } catch (err:any) {
         setError(err instanceof Error ? err.message : 'Failed to delete lead.');
+        toast.error(err.message);
         setIsDeleteDialogOpen(false);
         setLeadToDelete(null);
       }
@@ -375,6 +372,23 @@ const App: React.FC = () => {
     }
   };
 
+  const loadLeads = useCallback(async () => {
+    try {
+      const data = await fetchLeads(currentPage, setCurrentPage, setTotalPages);
+      setLeads(data);
+    } catch (err) {
+      console.error("Failed to refresh leads:", err);
+    }
+  }, [currentPage]);
+  useEffect(() => {
+    loadLeads();
+    const interval = setInterval(() => {
+      console.log("Refreshing leads every 10 minutes...");
+      loadLeads();
+    }, 10*60*1000); // 10 minutes
+    return () => clearInterval(interval);
+  }, [loadLeads]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -413,7 +427,7 @@ const App: React.FC = () => {
               <p className="text-gray-600 mt-1 dark:text-white">Manage and track all your leads</p>
             </div>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => loadLeads()}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-800 cursor-pointer"
             >
               Refresh
@@ -426,7 +440,7 @@ const App: React.FC = () => {
       <main className="px-4 sm:px-6 lg:px-8 py-6">
         {/* Search and Filter Section */}
         <div className="mb-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-center bg-white px-4 py-4 rounded-xl shadow-sm border">
+          <div className="flex flex-col sm:flex-row gap-4 items-center bg-white dark:bg-gray-800 rounded-lg p-6 mb-6 shadow-sm">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
