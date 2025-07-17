@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import Image from "next/image";
-import {usePathname } from "next/navigation";
+import {usePathname, useRouter } from "next/navigation";
 
 // Menu items.
 const items = [
@@ -77,6 +77,19 @@ const items = [
 ];
 
 const Appsidebar = () => {
+  const router = useRouter();
+    const handleLogout = () => {
+      document.cookie = "token=; path=/; expires=Thu, 01 Jan 2025 00:00:00 GMT";
+      const cookies = document.cookie.split(";").map(cookie => cookie.trim());
+      cookies.forEach(cookie => {
+        if (cookie.startsWith("002")) {
+          const name = cookie.split("=")[0];
+          document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 2025 00:00:00 GMT`;
+        }
+      });
+      router.push("/manager/auth/login");
+    };
+  
   const pathname = usePathname();
   return (
     <Sidebar collapsible="icon" side="left" className=" backdrop-blur-sm border-1 border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/90">
@@ -110,9 +123,6 @@ const Appsidebar = () => {
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
-                    {/* {item.title==="Add Lead" && <SidebarMenuBadge >
-                      <Plus size={15} /><span className="sr-only">Add Project</span>
-                    </SidebarMenuBadge>} */}
                 </SidebarMenuItem>
                 ))
               }
@@ -124,7 +134,7 @@ const Appsidebar = () => {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton>
+            <SidebarMenuButton onClick={handleLogout}>
               <LogOut size={16} />
               <span>Rahul Kumar</span>
             </SidebarMenuButton>
