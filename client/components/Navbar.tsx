@@ -1,9 +1,9 @@
 "use client";
 import { Bell, LogOut, Moon, Settings, User, X, ChevronDown, ChevronUp, Sun, SunMedium } from 'lucide-react'
 import Link from 'next/link'
-import React, { useState, useEffect } from 'react' // Import useEffect
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import React, { useState, useEffect, useCallback } from 'react' // Import useCallback
 import { useTheme } from "next-themes"
+import axios from '@/lib/Axios'; // Import axios
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,80 +16,109 @@ import { Button } from '@/components/ui/button'
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 
 type Notification = {
-  id: string;
+  _id: string; // Changed from 'id' to '_id' to match typical MongoDB IDs
   title: string;
   message: string;
-  time: string;
-  read: boolean;
+  time: string; // Assuming 'time' comes as a string, might need date formatting
+  isRead: boolean; // Changed from 'read' to 'isRead' to match API response
   expanded?: boolean;
 };
 
 const Navbar = () => {
-  const { theme, setTheme } = useTheme(); // Get current theme
-  const [mounted, setMounted] = useState(false); // State to handle hydration
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true); // Added loading state
+  const [error, setError] = useState<string | null>(null); // Added error state
 
   useEffect(() => {
-    setMounted(true); // Set mounted to true after hydration
+    setMounted(true);
   }, []);
 
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'New Message',
-      message: 'You have received a new message from John Doe regarding the project deadline extension. The client has agreed to extend the deadline by two weeks, but they need the initial mockups by tomorrow evening.',
-      time: '2 min ago',
-      read: false,
-      expanded: false
-    },
-    {
-      id: '2',
-      title: 'System Update',
-      message: 'Your system has been updated to version 2.0. This includes several new features and security patches. Please review the changelog for complete details.',
-      time: '1 hour ago',
-      read: false,
-      expanded: false
-    },
-    {
-      id: '3',
-      title: 'Payment Received',
-      message: 'Your payment of $100 has been received successfully. The transaction ID is TXN-456789. Thank you for your business!',
-      time: '3 hours ago',
-      read: true,
-      expanded: false
-    },
-    {
-      id: '4',
-      title: 'Meeting Reminder',
-      message: 'You have a meeting at 2:00 PM today with the marketing team to discuss the Q3 campaign strategy. Please bring your presentation materials.',
-      time: 'Yesterday',
-      read: true,
-      expanded: false
-    },
-  ]);
+  // Function to fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`/notification`);
+      // Assuming the API returns an array of notifications directly
+      const fetchedNotifications: Notification[] = response.data.data.map((notif: any) => ({
+        _id: notif._id,
+        title: notif.title || 'New Notification', // Add a default title if not present
+        message: notif.message,
+        time: new Date(notif.createdAt).toLocaleString(), // Use createdAt and format
+        isRead: notif.isRead,
+        expanded: false, // Initial state for expansion
+      }));
+      setNotifications(fetchedNotifications);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+      setError("Failed to load notifications.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  useEffect(() => {
+    if (mounted) {
+      fetchNotifications();
+    }
+  }, [mounted, fetchNotifications]); // Depend on mounted and fetchNotifications
 
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? {...n, read: true} : n
-    ));
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const markAsRead = async (id: string) => {
+    try {
+      await axios.put(`/notification/mark-read/${id}`);
+      setNotifications(notifications.map(n =>
+        n._id === id ? { ...n, isRead: true } : n
+      ));
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+      // Optionally show a user-friendly error
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({...n, read: true})));
+  const markAllAsRead = async () => {
+    try {
+      // The API you provided doesn't have a specific "mark-all-read" endpoint.
+      // We'll simulate it by calling individual markAsRead for unread ones
+      // or if your API has a batch update, use that.
+      // For now, let's fetch all unread IDs and mark them.
+      const unreadIds = notifications.filter(n => !n.isRead).map(n => n._id);
+      await Promise.all(unreadIds.map(id => axios.put(`/notification/mark-read/${id}`)));
+
+      // After successful API calls, update local state
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
   };
 
-  const deleteNotification = (id: string) => {
-    setNotifications(notifications.filter(n => n.id !== id));
+
+  const deleteNotification = async (id: string) => {
+    try {
+      await axios.delete(`/notification/delete/${id}`);
+      setNotifications(notifications.filter(n => n._id !== id));
+    } catch (err) {
+      console.error("Failed to delete notification:", err);
+      // Optionally show a user-friendly error
+    }
   };
 
-  const deleteAllNotifications = () => {
-    setNotifications([]);
+  const deleteAllNotifications = async () => {
+    try {
+      await axios.delete(`/notification/delete-all`);
+      setNotifications([]); // Clear all notifications from state
+    } catch (err) {
+      console.error("Failed to delete all notifications:", err);
+      // Optionally show a user-friendly error
+    }
   };
 
   const toggleExpand = (id: string) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? {...n, expanded: !n.expanded} : n
+    setNotifications(notifications.map(n =>
+      n._id === id ? { ...n, expanded: !n.expanded } : n
     ));
   };
 
@@ -98,7 +127,7 @@ const Navbar = () => {
   };
 
   if (!mounted) {
-    return null; // Don't render anything on the server to prevent hydration mismatch
+    return null;
   }
 
   return (
@@ -106,7 +135,7 @@ const Navbar = () => {
       <div className='flex items-center p-2 justify-between gap-4'>
         <SidebarTrigger />
         <div className='flex items-center justify-between gap-4'>
-          
+
           {/* Notification Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -123,9 +152,9 @@ const Navbar = () => {
               <DropdownMenuLabel className="flex justify-between items-center px-4 py-3">
                 <span>Notifications ({notifications.length})</span>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       markAllAsRead();
@@ -134,9 +163,9 @@ const Navbar = () => {
                   >
                     Mark all read
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteAllNotifications();
@@ -148,26 +177,30 @@ const Navbar = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              
+
               <div className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 ? (
+                {loading ? (
+                  <div className="p-4 text-center text-gray-500">Loading notifications...</div>
+                ) : error ? (
+                  <div className="p-4 text-center text-red-500">{error}</div>
+                ) : notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-4 text-center text-gray-500">
                     <Bell className="w-8 h-8 mb-2" />
                     <p>No notifications yet</p>
                   </div>
                 ) : (
                   notifications.map((notification) => (
-                    <DropdownMenuItem 
-                      key={notification.id}
-                      className={`flex flex-col items-start gap-1 p-3 border-b cursor-pointer ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
-                      onClick={() => markAsRead(notification.id)}
+                    <DropdownMenuItem
+                      key={notification._id} // Use _id here
+                      className={`flex flex-col items-start gap-1 p-3 border-b cursor-pointer ${!notification.isRead ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                      onClick={() => markAsRead(notification._id)} // Use _id here
                     >
                       <div className="flex justify-between w-full">
                         <h4 className="font-medium">{notification.title}</h4>
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteNotification(notification.id);
+                            deleteNotification(notification._id); // Use _id here
                           }}
                           className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                         >
@@ -182,7 +215,7 @@ const Navbar = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleExpand(notification.id);
+                              toggleExpand(notification._id); // Use _id here
                             }}
                             className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mt-1 flex items-center"
                           >
@@ -205,29 +238,27 @@ const Navbar = () => {
                   ))
                 )}
               </div>
-            
+
             </DropdownMenuContent>
           </DropdownMenu>
 
           <Link href="/">Dashboard</Link>
-          
+
           {/* THEME TOGGLE BUTTON */}
-          <div className="relative flex items-center p-1 rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-300 ease-in-out">
+          <div onClick={() => setTheme(prev => prev === "light" ? "dark" : "light")} className="relative flex items-center rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-300 ease-in-out">
             <button
-              onClick={() => setTheme("light")}
-              className={`relative z-10 px-3 py-1 text-sm rounded-full transition-all duration-300 ease-in-out 
+              className={`relative z-10 px-2 py-1 text-sm rounded-full transition-all duration-300 ease-in-out
                 ${theme === 'light' ? 'text-blue-600 font-semibold' : 'text-gray-600 dark:text-gray-300'}`}
             >
-             <SunMedium />
+              <SunMedium className='w-5' />
             </button>
             <button
-              onClick={() => setTheme("dark")}
-              className={`relative z-10 px-3 py-1 text-sm rounded-full transition-all duration-300 ease-in-out 
+              className={`relative z-10 px-2 py-1 text-sm rounded-full transition-all duration-300 ease-in-out
                 ${theme === 'dark' ? 'text-blue-600 font-semibold' : 'text-gray-600 dark:text-gray-300'}`}
             >
-              <Moon />
+              <Moon className='w-5' />
             </button>
-            <div className={`absolute top-0.5 bottom-0.5 w-[calc(50%-4px)] rounded-full bg-white dark:bg-gray-800 shadow-md transition-transform duration-300 ease-in-out
+            <div className={`absolute top-0.5 bottom-0.5 w-[calc(50%-1px)] rounded-full bg-white dark:bg-gray-800 shadow-md transition-transform duration-300 ease-in-out
               ${theme === 'dark' ? 'translate-x-full' : 'translate-x-0'} `}></div>
           </div>
         </div>

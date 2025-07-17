@@ -80,8 +80,8 @@ export default function NewCampaignDialog() {
             id: lead.id,
             name: lead.name,
             position: lead.position || "",
-            category: lead.category.title || "",
-            color: lead.category.color || "#6366f1",
+            category: lead.category?.title || "",
+            color: lead.category?.color || "#6366f1",
           }));
         setLeads(mappedLeads);
       });
@@ -206,7 +206,7 @@ export default function NewCampaignDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="absolute top-4 right-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg cursor-pointer px-6 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105">
+        <Button className=" bg-gradient-to-r flex items-center justify-center from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg cursor-pointer px-6 w-48 h-12 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105">
           <Send className="h-4 w-4 mr-2" />
           New Campaign
         </Button>
