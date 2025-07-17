@@ -79,14 +79,14 @@ export default function NewAssignmentDialog() {
         const mappedLeads = data
           .filter(
             (lead: any) =>
-              !lead.assignedTo || lead.assignedTo.name === "Unassigned"
+              !lead.assignedTo || lead.assignedTo.name === "assigned"
           )
           .map((lead: any) => ({
             id: lead.id,
             name: lead.name,
             position: lead.position || "",
-            category: lead.category.title || "",
-            color: lead.category.color || "black",
+            category: lead.category?.title || "",
+            color: lead.category?.color || "black",
           }));
         setLeads(mappedLeads);
       });
