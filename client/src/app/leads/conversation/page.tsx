@@ -30,71 +30,44 @@ interface Conversation {
   id: string;
   leadName: string;
   workerName: string;
+  managerName: string;
   category: string;
   categoryColor: string;
   followupDate: string;
   conclusion: string;
-  status: 'new' | 'in-progress' | 'follow-up' | 'closed'; // Enforcing specific status values
-  conversationEnd: 'positive' | 'negative' | 'not confirmed'; // Enforcing specific end values
+  status: 'new' | 'in-progress' | 'follow-up' | 'closed';
+  conversationEnd: 'positive' | 'negative' | 'not confirmed';
   createdAt: string;
 }
 
-const dummyConversations: Conversation[] = [
-  {
-    id: '1',
-    leadName: 'Alice Cooper',
-    workerName: 'amit',
-    category: 'Sales',
-    categoryColor: '#3b82f6',
-    followupDate: '2024-07-20',
-    conclusion: 'Customer is very interested in our premium package. They want to schedule a demo next week and discuss pricing options. The budget seems to be around $50,000 annually. They have a team of 25 people who would be using the system.',
-    status: 'new',
-    conversationEnd: 'positive',
-    createdAt: '2024-07-15T10:30:00Z'
-  },
-  {
-    id: '2',
-    leadName: 'Bob Wilson',
-    workerName: 'Jane Smith',
-    category: 'Marketing',
-    categoryColor: '#10b981',
-    followupDate: '2024-07-18',
-    conclusion: 'Lead expressed concerns about the pricing structure and requested more information about the basic plan. They seem hesitant but not completely disinterested.',
-    status: 'in-progress',
-    conversationEnd: 'not confirmed',
-    createdAt: '2024-07-14T15:45:00Z'
-  },
-  {
-    id: '3',
-    leadName: 'Charlie Brown',
-    workerName: 'Mike Johnson',
-    category: 'Support',
-    categoryColor: '#f59e0b',
-    followupDate: '2024-07-22',
-    conclusion: 'Customer is not satisfied with the current solution and is looking for alternatives. They mentioned budget constraints and timeline issues.',
-    status: 'closed',
-    conversationEnd: 'negative',
-    createdAt: '2024-07-13T09:15:00Z'
-  },
-  {
-    id: '4',
-    leadName: 'Diana Prince',
-    workerName: 'Sarah Wilson',
-    category: 'Technical',
-    categoryColor: '#ef4444',
-    followupDate: '2024-07-25',
-    conclusion: 'Technical discussion went well. Customer understands the implementation requirements and is ready to proceed with the next phase.',
-    status: 'follow-up',
-    conversationEnd: 'positive',
-    createdAt: '2024-07-12T14:20:00Z'
-  }
-];
+interface ApiResponse {
+  conversation: {
+    _id: string;
+    date: string;
+    conclusion: string;
+    isProfitable: boolean | null;
+    addedBy: string;
+    isDeleted: boolean;
+    lead: string;
+    __v: number;
+  };
+  meta: {
+    leadName: string;
+    followupDate: string;
+    status: 'new' | 'in-progress' | 'follow-up' | 'closed';
+    workerName?: string;
+    managerName?: string;
+    categoryTitle: string;
+    categoryColor: string;
+  };
+}
 
 const ConversationComponent = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [workerFilter, setWorkerFilter] = useState<string>('all');
-  const [conversations, setConversations] = useState<Conversation[]>(dummyConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [hideSelect, setHideSelect] = useState(false);
@@ -112,28 +85,59 @@ const ConversationComponent = () => {
     };
     checkCookies();
   }, []);
+  const cookies = document.cookie.split(";").map(cookie => cookie.trim());
+  const has001Cookie = cookies.some(cookie => cookie.startsWith("001"));
 
   // In real implementation, you would fetch data like this:
   useEffect(() => {
     // Fetch categories
     axios.get("/category").then((res) => {
       if (Array.isArray(res.data.data)) setCategories(res.data.data as Category[]);
-      console.log("Category: ",res.data.data);
+      console.log("Category: ", res.data.data);
     });
 
     // Fetch workers
-    axios.get("/worker/get-all-workers").then((res) => {
-      if (Array.isArray(res.data.data)) setWorkers(res.data.data as Worker[]);
-      console.log("All Worker: ",res.data.data);
-    });
+    {
+      !has001Cookie && axios.get("/worker/get-all-workers").then((res) => {
+        if (Array.isArray(res.data.data)) setWorkers(res.data.data as Worker[]);
+        console.log("All Worker: ", res.data.data);
+      });
+    }
 
     // Fetch conversations
-    // axios.get("/conversation/").then((res) => {
-    //   if (Array.isArray(res.data.data)) setConversations(res.data.data as Conversation[]);
-    //   console.log("All Conversation: ",res.data.data);
-    // });
+    fetchConversations();
   }, []);
 
+  // Mapping fetched conversations
+  const fetchConversations = async () => {
+    try {
+      const response = await axios.get<{ data: ApiResponse[] }>('/conversation');
+      console.log("Conversations response:", response.data);
+      const mapped: Conversation[] = response.data.data.map((item) => ({
+        id: item.conversation._id,
+        leadName: item.meta.leadName,
+        workerName: item.meta.workerName || 'N/A',
+        managerName: item.meta.managerName || 'N/A',
+        category: item.meta.categoryTitle,
+        categoryColor: item.meta.categoryColor,
+        followupDate: item.meta.followupDate,
+        conclusion: item.conversation.conclusion,
+        status: item.meta.status,
+        conversationEnd: item.conversation.isProfitable === true
+          ? "positive"
+          : item.conversation.isProfitable === false
+            ? "negative"
+            : "not confirmed",
+        createdAt: item.conversation.date,
+      }));
+      setConversations(mapped);
+      // console.log("Conversations fetched:", mapped);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredConversations = useMemo(() => {
     let result: Conversation[] = conversations;
@@ -220,7 +224,7 @@ const ConversationComponent = () => {
   };
 
   const getStatusColor = (status: Conversation['status']) => {
-    switch (status.toLowerCase()) {
+    switch (status) {
       case 'new':
         return 'bg-blue-100 text-blue-800';
       case 'in-progress':
@@ -271,7 +275,7 @@ const ConversationComponent = () => {
                 placeholder="Search by lead name, worker, category, or conclusion..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-150"
+                className="pl-10 w-full md:w-xl"
               />
             </div>
 
@@ -316,6 +320,7 @@ const ConversationComponent = () => {
             </div>
           </div>
         </div>
+
         {/* Conversations Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredConversations.map(conversation => (
@@ -324,11 +329,13 @@ const ConversationComponent = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg text-gray-900 dark:text-white mb-2">
-                      {conversation.leadName}
+                      Lead: {conversation.leadName}
                     </CardTitle>
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
                       <User className="h-4 w-4" />
-                      {conversation.workerName}
+                      {conversation.workerName != 'N/A' ?
+                        <span>Worker: {conversation.workerName}</span>
+                        : <span>Manager: {conversation.managerName}</span>}
                     </div>
                     <div className="flex items-center gap-2 mb-3">
                       <div
@@ -360,13 +367,15 @@ const ConversationComponent = () => {
               <CardContent className="pt-0">
                 <div className="space-y-3">
                   {/* Status and Conversation End */}
-                  <div className="flex flex-wrap gap-2">
-                    <Badge className={getStatusColor(conversation.status)}>
+                  <div className="flex flex-wrap justify-between text-sm">
+                    <span className='text-sm'>Status: <Badge className={getStatusColor(conversation.status)}>
                       {conversation.status}
                     </Badge>
-                    <Badge className={getConversationEndColor(conversation.conversationEnd)}>
+                    </span>
+                    <span className='text-sm'>Was Profitable: <Badge className={getConversationEndColor(conversation.conversationEnd)}>
                       {conversation.conversationEnd}
                     </Badge>
+                    </span>
                   </div>
 
                   {/* Follow-up Date */}
@@ -376,9 +385,9 @@ const ConversationComponent = () => {
                   </div>
 
                   {/* Conclusion */}
-                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 max-h-3/4">
                     <h4 className="font-medium text-gray-900 dark:text-white mb-2">Conclusion:</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-h-150 overflow-hidden text-wrap">
                       {expandedCards[conversation.id]
                         ? conversation.conclusion
                         : truncateText(conversation.conclusion)
@@ -417,9 +426,10 @@ const ConversationComponent = () => {
             <p className="text-gray-500 dark:text-gray-400">No conversations found matching your criteria.</p>
           </div>
         )}
+
         {/* Update Dialog */}
         <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
-          <DialogContent className="w-1/3">
+          <DialogContent className="w-full sm:w-1/2 md:w-1/3">
             <DialogHeader>
               <DialogTitle>Update Conversation</DialogTitle>
             </DialogHeader>

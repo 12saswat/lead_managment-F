@@ -671,11 +671,11 @@ const App: React.FC = () => {
                                     onSubmit={async (e) => {
                                       e.preventDefault();
                                       try {
+                                        console.log("Follow-up Form Data:", followUpForm);
                                         await axios.post(`/lead/${activeLeadId}/follow-up`, {
                                           followUpDate: followUpForm.date,
                                           conclusion: followUpForm.conclusion,
                                         });
-                                        console.log("Follow-up Form Data:", followUpForm);
                                         toast.success('Follow-up added successfully!');
                                         setShowFollowUpDialog(false);
                                         setFollowUpForm({ date: '', conclusion: '' });
@@ -737,8 +737,8 @@ const App: React.FC = () => {
                                       e.preventDefault();
                                       try {
                                         console.log("End Conversation Form Data:", endConvoForm);
-                                        await axios.post(`/lead/${activeLeadId}/end-convo`, {
-                                          type: endConvoForm.type,
+                                        await axios.post(`/lead/${activeLeadId}/follow-up`, {
+                                          isProfitable: endConvoForm.type==='positive'? true : false,
                                           conclusion: endConvoForm.conclusion,
                                         });
                                         toast.success('Conversation ended successfully!');
@@ -859,7 +859,6 @@ const App: React.FC = () => {
                                   e.preventDefault();
                                   try {
                                     await axios.post(`/lead/${activeLeadId}/follow-up`, {
-                                      // leadId: activeLeadId,
                                       followUpDate: followUpForm.date,
                                       conclusion: followUpForm.conclusion,
                                     });
@@ -924,10 +923,9 @@ const App: React.FC = () => {
                                 onSubmit={async (e) => {
                                   e.preventDefault();
                                   try {
-                                    await axios.post(`/lead/${activeLeadId}/end-convo`, {
-                                      // leadId: activeLeadId,
-                                      type: endConvoForm.type,
-                                      conclusion: endConvoForm.conclusion,
+                                    await axios.post(`/lead/${activeLeadId}/follow-up`, {
+                                      isProfitable: endConvoForm.type==='positive'? true : false,
+                                      notes: endConvoForm.conclusion,
                                     });
                                     toast.success('Conversation ended successfully!');
                                     setShowEndConvoDialog(false);
