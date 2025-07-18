@@ -128,8 +128,8 @@ export default function ManagerAssignmentsPage() {
     // Map raw assignments to AssignmentTableData for rendering
     const assignmentsForTable: AssignmentTableData[] = assignments.map(a => ({
         id: a.id,
-        name: a.name, // Lead name
-        position: a.position, // Lead position
+        name: a.name,
+        position: a.position,
         category: a.category?.title || "Not Assigned", // Use category title, default if null
         status: (a.status === "new" || a.status === "in-progress"
             ? "Active"

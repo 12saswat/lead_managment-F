@@ -173,9 +173,9 @@ export default function NewAssignmentDialog() {
       });
       setSelectedLeadIds([]);
     } catch (err: any) {
-      console.log("error ha bhai>>",err);
+      console.log("error:>>", err?.response?.data.error.message);
       
-      toast.error(err?.response?.data?.message || "Failed to assign leads.");
+      toast.error(err?.response?.data.error.message || "Failed to assign leads.");
     }
   };
 
