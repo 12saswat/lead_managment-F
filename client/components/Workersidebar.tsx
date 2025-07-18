@@ -1,35 +1,20 @@
-import { LogOut, Plus, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, FileText, MessageSquare } from "lucide-react"
-import { useParams, usePathname } from "next/navigation";
+import { LogOut, Plus, LayoutDashboard, Users, Copy, FileText, MessageSquare } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import Image from "next/image"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-
-
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Button } from "@/components/ui/button"
 
 // Menu items.
 const items = [
@@ -59,20 +44,10 @@ const items = [
     icon: MessageSquare,
   },
   // {
-  //   title: "Categories",
-  //   url: "#",
-  //   icon: Layers,
+  //   title: "Campaigns",
+  //   url: "",
+  //   icon: Mail,
   // },
-  // {
-  //   title: "Assignments",
-  //   url: "#",
-  //   icon: Briefcase,
-  // },
-  {
-    title: "Campaigns",
-    url: "#",
-    icon: Mail,
-  },
   {
     title: "Documents",
     url: "#",
@@ -81,6 +56,20 @@ const items = [
 ]
 
 const WorkerSidebar = () => {
+  const router = useRouter();
+  const handleLogout = () => {
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 2025 00:00:00 GMT";
+    const cookies = document.cookie.split(";").map(cookie => cookie.trim());
+    cookies.forEach(cookie => {
+      if (cookie.startsWith("001")) {
+        const name = cookie.split("=")[0];
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 2025 00:00:00 GMT`;
+      }
+    });
+    router.push("/worker/auth/login");
+  };
+
+
   const pathname = usePathname();
   return (
     <Sidebar collapsible="icon" side="left" className="backdrop-blur-sm border-1 border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/90">
@@ -111,9 +100,6 @@ const WorkerSidebar = () => {
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {/* {item.title==="Add Lead" && <SidebarMenuBadge >
-                      <Plus size={15} /><span className="sr-only">Add Project</span>
-                    </SidebarMenuBadge>} */}
                   </SidebarMenuItem>
                 ))
               }
@@ -127,9 +113,9 @@ const WorkerSidebar = () => {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton>
+            <SidebarMenuButton onClick={handleLogout} className="cursor-pointer">
               <LogOut size={16} />
-              <span>Rahul Kumar</span>
+              <span>Abhay Kushwaha</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

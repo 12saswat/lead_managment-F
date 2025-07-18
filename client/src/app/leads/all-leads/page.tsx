@@ -75,14 +75,14 @@ const deleteLeadApi = async (leadId: string): Promise<void> => {
   try {
     const res = await axios.delete(`/lead/deletelead/${leadId}`);
     if (!res.data.success) {
-      throw new Error(res.data.response?.message || "Failed to delete lead.");
+      throw new Error(res.data.error.message || "Failed to delete lead.");
     }
     console.log(`Lead with ID ${leadId} deleted successfully`);
     toast.success("Lead deleted successfully!");
   }
   catch (error: any) {
     console.error(`Error deleting lead ${leadId}:`, error?.response || error.message);
-    toast.error(error?.response?.data?.message || "Failed to delete lead.");
+    toast.error(error?.response?.data.error.message || "Failed to delete lead.");
   }
 };
 
@@ -216,8 +216,11 @@ const App: React.FC = () => {
   const [followUpForm, setFollowUpForm] = useState({ date: '', conclusion: '' });
   const [endConvoForm, setEndConvoForm] = useState({ type: 'positive', conclusion: '' });
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
+  // Detect worker cookie (001)
+  const [isWorker, setIsWorker] = useState(false);
   useEffect(() => {
     const cookies = document.cookie.split(';').map(c => c.trim());
+    setIsWorker(cookies.some(c => c.startsWith('001')));
     setShowFilterControls(cookies.some(c => c.startsWith('002')));
     if (cookies.some(c => c.startsWith('001'))) {
       setNoCatOnlyAssign(true);
@@ -323,11 +326,12 @@ const App: React.FC = () => {
       try {
         await deleteLeadApi(leadToDelete); // Call the mock API
         setLeads((prevLeads) => prevLeads.filter((lead) => lead.id !== leadToDelete));
+        loadLeads()
         setIsDeleteDialogOpen(false);
         setLeadToDelete(null);
-      } catch (err:any) {
-        setError(err instanceof Error ? err.message : 'Failed to delete lead.');
+      } catch (err: any) {
         toast.error(err.message);
+        loadLeads()
         setIsDeleteDialogOpen(false);
         setLeadToDelete(null);
       }
@@ -385,7 +389,7 @@ const App: React.FC = () => {
     const interval = setInterval(() => {
       console.log("Refreshing leads every 10 minutes...");
       loadLeads();
-    }, 10*60*1000); // 10 minutes
+    }, 10 * 60 * 1000); // 10 minutes
     return () => clearInterval(interval);
   }, [loadLeads]);
 
@@ -637,20 +641,28 @@ const App: React.FC = () => {
                           {lead.lastContact}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center justify-between space-x-2">
+                          <div className="flex items-center justify-self-end gap-3 space-x-2">
                             {NoCatOnlyAssign && (
                               <>
-                                <button onClick={() => { setActiveLeadId(lead.id); setShowFollowUpDialog(true); }} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
-                                  <MessageSquare size={18} />
-                                </button>
-                                <button
-                                  onClick={() => { setActiveLeadId(lead.id); setShowEndConvoDialog(true); }}
-                                  className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
-                                >
-                                  <PhoneOffIcon size={18} />
-                                </button>
+                                {lead.status !== "closed" && (
+                                  <>
+                                    <button
+                                      onClick={() => { setActiveLeadId(lead.id); setShowFollowUpDialog(true); }}
+                                      className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer"
+                                    >
+                                      <MessageSquare size={18} />
+                                    </button>
+                                    <button
+                                      onClick={() => { setActiveLeadId(lead.id); setShowEndConvoDialog(true); }}
+                                      className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                                    >
+                                      <PhoneOffIcon size={18} />
+                                    </button>
+                                  </>
+                                )}
                               </>
                             )}
+
                             {/* FollowUp Dialog */}
                             {showFollowUpDialog && (
                               <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-opacity-40">
@@ -671,7 +683,7 @@ const App: React.FC = () => {
                                     onSubmit={async (e) => {
                                       e.preventDefault();
                                       try {
-                                        await axios.post(`/lead/${activeLeadId}/follow-up`, {
+                                        await axios.post(`/lead//${activeLeadId}/follow-up`, {
                                           followUpDate: followUpForm.date,
                                           conclusion: followUpForm.conclusion,
                                         });
@@ -737,8 +749,9 @@ const App: React.FC = () => {
                                       e.preventDefault();
                                       try {
                                         console.log("End Conversation Form Data:", endConvoForm);
-                                        await axios.post(`/lead/${activeLeadId}/end-convo`, {
-                                          type: endConvoForm.type,
+                                        const isProfitable = endConvoForm.type === 'positive';
+                                        await axios.put(`/lead/endconvo/${activeLeadId}`, {
+                                          isProfitable,
                                           conclusion: endConvoForm.conclusion,
                                         });
                                         toast.success('Conversation ended successfully!');
@@ -791,12 +804,14 @@ const App: React.FC = () => {
                             <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
                               <Edit size={18} />
                             </button>
-                            <button
-                              onClick={() => handleDeleteClick(lead.id)}
-                              className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+                            {!isWorker && (
+                              <button
+                                onClick={() => handleDeleteClick(lead.id)}
+                                className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -827,29 +842,37 @@ const App: React.FC = () => {
                       <div className="flex space-x-2">
                         {NoCatOnlyAssign && (
                           <>
-                            <button onClick={() => { setActiveLeadId(lead.id); setShowFollowUpDialog(true); }} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
-                              <MessageSquare size={18} />
-                            </button>
-                            <button
-                              onClick={() => { setActiveLeadId(lead.id); setShowEndConvoDialog(true); }}
-                              className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
-                            >
-                              <PhoneOffIcon size={18} />
-                            </button>
+                            {lead.status !== "closed" && (
+                              <>
+                                <button
+                                  onClick={() => { setActiveLeadId(lead.id); setShowFollowUpDialog(true); }}
+                                  className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer"
+                                >
+                                  <MessageSquare size={18} />
+                                </button>
+                                <button
+                                  onClick={() => { setActiveLeadId(lead.id); setShowEndConvoDialog(true); }}
+                                  className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                                >
+                                  <PhoneOffIcon size={18} />
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
+
                         {/* FollowUp Dialog */}
                         {showFollowUpDialog && (
                           <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-opacity-40">
-                            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-auto p-8">
+                            <div className="bg-white text-black rounded-xl shadow-lg w-full max-w-lg mx-auto p-6 md:p-8">
                               <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold text-gray-800">Add Follow-up</h3>
+                                <h3 className="text-xl font-semibold">Add Follow-up</h3>
                                 <button
                                   onClick={() => {
                                     setShowFollowUpDialog(false);
                                     setFollowUpForm({ date: '', conclusion: '' });
                                   }}
-                                  className="text-gray-400 hover:text-red-500 transition"
+                                  className="text-gray-500 hover:text-red-500 transition"
                                 >
                                   <X size={24} />
                                 </button>
@@ -859,10 +882,10 @@ const App: React.FC = () => {
                                   e.preventDefault();
                                   try {
                                     await axios.post(`/lead/${activeLeadId}/follow-up`, {
-                                      // leadId: activeLeadId,
                                       followUpDate: followUpForm.date,
                                       conclusion: followUpForm.conclusion,
                                     });
+                                    console.log("Follow-up Form Data:", followUpForm);
                                     toast.success('Follow-up added successfully!');
                                     setShowFollowUpDialog(false);
                                     setFollowUpForm({ date: '', conclusion: '' });
@@ -872,29 +895,29 @@ const App: React.FC = () => {
                                 }}
                               >
                                 <div className="mb-5">
-                                  <label className="block text-sm font-medium mb-2 text-gray-700">Follow-up Date</label>
+                                  <label className="block text-sm font-medium mb-2">Follow-up Date</label>
                                   <input
                                     type="date"
                                     value={followUpForm.date}
                                     onChange={e => setFollowUpForm(f => ({ ...f, date: e.target.value }))}
                                     min={new Date().toISOString().split("T")[0]}
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                    className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                   />
                                 </div>
                                 <div className="mb-6">
-                                  <label className="block text-sm font-medium mb-2 text-gray-700">Conclusion</label>
+                                  <label className="block text-sm font-medium mb-2">Conclusion</label>
                                   <textarea
                                     value={followUpForm.conclusion}
                                     onChange={e => setFollowUpForm(f => ({ ...f, conclusion: e.target.value }))}
-                                    placeholder="Add any relevant conclusion here..."
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm resize-none"
+                                    placeholder="Add any relevant notes here..."
+                                    className="w-full border border-gray-300 rounded-md px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                                     required
                                   />
                                 </div>
                                 <button
                                   type="submit"
-                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition duration-200"
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-md shadow-md transition"
                                 >
                                   Submit
                                 </button>
@@ -903,19 +926,18 @@ const App: React.FC = () => {
                           </div>
                         )}
 
-                        {/* --- EndConvo Modal --- */}
-
+                        {/* End Conversation Dialog */}
                         {showEndConvoDialog && (
-                          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-opacity-40">
-                            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-auto p-8">
+                          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+                            <div className="bg-white text-black rounded-xl shadow-lg w-full max-w-lg mx-auto p-6 md:p-8">
                               <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold text-gray-800">End Conversation</h3>
+                                <h3 className="text-xl font-semibold">End Conversation</h3>
                                 <button
                                   onClick={() => {
                                     setShowEndConvoDialog(false);
                                     setEndConvoForm({ type: 'positive', conclusion: '' });
                                   }}
-                                  className="text-gray-400 hover:text-red-500 transition"
+                                  className="text-gray-500 hover:text-red-500 transition"
                                 >
                                   <X size={24} />
                                 </button>
@@ -924,9 +946,10 @@ const App: React.FC = () => {
                                 onSubmit={async (e) => {
                                   e.preventDefault();
                                   try {
-                                    await axios.post(`/lead/${activeLeadId}/end-convo`, {
-                                      // leadId: activeLeadId,
-                                      type: endConvoForm.type,
+                                    console.log("End Conversation Form Data:", endConvoForm);
+                                    const isProfitable = endConvoForm.type === 'positive';
+                                    await axios.put(`/lead/endconvo/${activeLeadId}`, {
+                                      isProfitable,
                                       conclusion: endConvoForm.conclusion,
                                     });
                                     toast.success('Conversation ended successfully!');
@@ -938,10 +961,10 @@ const App: React.FC = () => {
                                 }}
                               >
                                 <div className="mb-5">
-                                  <label className="block text-sm font-medium mb-2 text-gray-700">Type</label>
+                                  <label className="block text-sm font-medium mb-2">Type</label>
                                   <div className="flex gap-6">
                                     {['positive', 'negative'].map((type) => (
-                                      <label key={type} className="flex items-center space-x-2 text-sm">
+                                      <label key={type} className="flex items-center gap-2 text-sm">
                                         <input
                                           type="radio"
                                           name="type"
@@ -956,18 +979,18 @@ const App: React.FC = () => {
                                   </div>
                                 </div>
                                 <div className="mb-6">
-                                  <label className="block text-sm font-medium mb-2 text-gray-700">Conclusion</label>
+                                  <label className="block text-sm font-medium mb-2">Conclusion</label>
                                   <textarea
                                     value={endConvoForm.conclusion}
                                     onChange={e => setEndConvoForm(f => ({ ...f, conclusion: e.target.value }))}
-                                    placeholder="Add any relevant conclusion here..."
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm resize-none"
+                                    placeholder="Add any relevant notes here..."
+                                    className="w-full border border-gray-300 rounded-md px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
                                     required
                                   />
                                 </div>
                                 <button
                                   type="submit"
-                                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg shadow-md transition duration-200"
+                                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-md shadow-md transition"
                                 >
                                   Submit
                                 </button>
@@ -975,15 +998,18 @@ const App: React.FC = () => {
                             </div>
                           </div>
                         )}
-                        <button className="text-gray-400 hover:text-yellow-600 transition-colors">
+
+                        <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
                           <Edit size={18} />
                         </button>
-                        <button
-                          onClick={() => handleDeleteClick(lead.id)}
-                          className="text-gray-400 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {!isWorker && (
+                          <button
+                            onClick={() => handleDeleteClick(lead.id)}
+                            className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </div>
 
