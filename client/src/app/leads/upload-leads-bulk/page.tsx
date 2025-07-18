@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
-import ExcelUploadSection from "@/../components/ExcelUploadSection";
-import OptionsAndSubmitSection from "@/../components/OptionsAndSubmitSection";
+import BulkUploadLeft from "../../../../components/BulkUploadLeft";
+import BulkUploadRight from "../../../../components/BulkUploadRight";
 import axios from "@/lib/Axios";
+import * as XLSX from "xlsx";
 
 interface Category {
   _id: string;
@@ -95,35 +96,52 @@ const BulkUploadPage = () => {
     }
   };
 
-  const previewExcel = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const rows = text.split(/\r?\n/).filter(Boolean).map(row => row.split(","));
-      setExcelPreview(rows);
-    };
-    reader.readAsText(file);
-  };
-
   const handleDownloadTemplate = () => {
-    const headers = ["name", "email", "phonenumber", "position", "leadSource", "priority", "notes"];
-    const example = [
-      "Raman",
-      "raman@example.com",
-      "9876543210",
-      "Developer",
-      "Advertisement",
-      "high",
-      "Some text here about the lead or additional notes about the lead. This can include any relevant information that helps in understanding the lead better."
+    // Create a worksheet and workbook using xlsx
+    const headers = [
+      "name",
+      "email",
+      "phoneNumber",
+      "position",
+      "leadSource",
+      "priority",
+      "notes",
     ];
-    const csvContent = headers.join(",") + "\n" + example.join(",");
-    const blob = new Blob([csvContent], { type: "text/csv" });
+    const example = [
+      [
+        "Raman",
+        "raman@example.com",
+        "9876543210",
+        "Developer",
+        "Advertisement",
+        "high",
+        "Some text here about the lead or additional notes about the lead. This can include any relevant information that helps in understanding the lead better.",
+      ],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...example]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "LeadsTemplate");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "lead_template.xlsx";
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const previewExcel = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const data = event.target?.result;
+      const workbook = XLSX.read(data, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rows: string[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      setExcelPreview(rows);
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleUpload = async () => {
@@ -142,6 +160,9 @@ const BulkUploadPage = () => {
     if (assignee) {
       formData.append("assignedTo", assignee); // Use worker ID
     }
+    console.log("Uploading leads with formData:", formData);
+    console.log("Selected category:", category);
+    console.log("Selected assignee:", assignee);
     try {
       const res = await axios.post(
         "/lead/bulk-upload",
@@ -154,7 +175,7 @@ const BulkUploadPage = () => {
         setCategory("");
         setAssignee("");
         setExcelPreview([]);
-        window.location.reload(); // Reload
+        // window.location.reload(); // Reload
       } else {
         toast.error("Upload failed. Please try again.");
       }
@@ -198,7 +219,7 @@ const BulkUploadPage = () => {
     ${excelFile ? "md:w-2/3" : "md:w-1/2"}
     w-full
   `}>
-            <ExcelUploadSection
+            <BulkUploadLeft
               excelFile={excelFile}
               excelPreview={excelPreview}
               handleFileChange={handleFileChange}
@@ -210,7 +231,7 @@ const BulkUploadPage = () => {
     ${excelFile ? "md:w-1/3" : "md:w-1/2"}
     w-full
   `}>
-            <OptionsAndSubmitSection
+            <BulkUploadRight
               category={category}
               setCategory={setCategory}
               assignee={assignee} // Pass worker ID
