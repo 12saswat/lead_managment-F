@@ -131,7 +131,7 @@ const Navbar = () => {
   }
 
   return (
-    <nav className='dark:bg-[#0F172B] backdrop-blur-2xl flex justify-between flex-col sticky z-20 h-16 top-0 shadow-sm dark:border-b-1 dark:border-gray-700'>
+    <nav className='dark:bg-[#0F172B] backdrop-blur-2xl flex justify-around flex-col sticky z-20 h-16 top-0 shadow-sm dark:border-b-1 dark:border-gray-700'>
       <div className='flex items-center p-2 justify-between gap-4'>
         <SidebarTrigger />
         <div className='flex items-center justify-between gap-4'>
@@ -242,7 +242,7 @@ const Navbar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Link href="/">Dashboard</Link>
+          <Link href="#">Dashboard</Link>
 
           {/* THEME TOGGLE BUTTON */}
           <div onClick={() => setTheme(prev => prev === "light" ? "dark" : "light")} className="relative flex items-center rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-300 ease-in-out">
