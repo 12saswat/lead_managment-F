@@ -72,20 +72,18 @@ export default function NewCampaignDialog() {
       axios.get("/lead/getalllead").then((res) => {
         const data = res.data?.data?.leads || [];
         const mappedLeads = data
-          .filter(
-            (lead: any) =>
-              !lead.assignedTo || lead.assignedTo.name === "Unassigned"
-          )
-          .map((lead: any) => ({
+      .map((lead: any) => ({
             id: lead.id,
             name: lead.name,
             position: lead.position || "",
             category: lead.category?.title || "",
             color: lead.category?.color || "#6366f1",
           }));
+          console.log("Dialog opened, fetching categories and leads",data);
         setLeads(mappedLeads);
       });
     }
+    
   }, [open]);
 
   // Filter leads based on search term and category
@@ -153,22 +151,22 @@ export default function NewCampaignDialog() {
   // Submit campaign
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!form.campaignTitle.trim()) {
       toast.error("Please enter a campaign title.");
       return;
     }
-    
-    if (!form.category) {
-      toast.error("Please select a category.");
+
+    if (!form.category.trim()) {
+      toast.error("Please enter a category.");
       return;
     }
-    
+
     if (selectedLeadIds.length === 0) {
       toast.error("Please select at least one lead.");
       return;
     }
-    
+
     if (form.messageType === "email") {
       if (!form.emailSubject.trim()) {
         toast.error("Please enter an email subject.");
@@ -181,16 +179,21 @@ export default function NewCampaignDialog() {
     }
 
     setIsSubmitting(true);
+    console.log("Submitting campaign with form data:", form);
     
     try {
-      await axios.post("/create-campaign", {
-        campaignTitle: form.campaignTitle,
-        category: form.category,
-        messageType: form.messageType,
-        emailSubject: form.emailSubject,
-        emailContent: form.emailContent,
+      // Map form state to the required API payload
+      const payload = {
         leadIds: selectedLeadIds,
-      });
+        title: form.campaignTitle,
+        subject: form.emailSubject,
+        description: form.emailContent,
+        type: form.messageType === "email" ? "mail" : "sms",
+        category: form.category,
+      };
+
+      // Use the new API endpoint
+      await axios.post("/campaign/create", payload);
 
       toast.success("Campaign created successfully!");
       setOpen(false);
@@ -211,7 +214,7 @@ export default function NewCampaignDialog() {
           New Campaign
         </Button>
       </DialogTrigger>
-      
+
       <DialogContent className="bg-white h-[95vh] dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-0 overflow-hidden max-w-6xl">
         <DialogHeader className="border-b border-gray-200 dark:border-gray-700 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800">
           <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight text-center flex items-center justify-center">
@@ -219,8 +222,8 @@ export default function NewCampaignDialog() {
             Create Campaign
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="flex  flex-col md:flex-row h-[calc(95vh-100px)]">
+
+        <div className="flex  flex-col md:flex-row h-[calc(95vh-100px)]">
           {/* Left Panel - Category Filter & Leads Selection */}
           <div
             className={`${
@@ -281,7 +284,7 @@ export default function NewCampaignDialog() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -361,8 +364,8 @@ export default function NewCampaignDialog() {
             <button
               onClick={() => setMobileView("leads")}
               className={`flex-1 py-3 flex items-center justify-center space-x-2 transition-colors ${
-                mobileView === "leads" 
-                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200" 
+                mobileView === "leads"
+                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200"
                   : "text-gray-600 dark:text-gray-400"
               }`}
             >
@@ -372,8 +375,8 @@ export default function NewCampaignDialog() {
             <button
               onClick={() => setMobileView("form")}
               className={`flex-1 py-3 flex items-center justify-center space-x-2 transition-colors ${
-                mobileView === "form" 
-                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200" 
+                mobileView === "form"
+                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200"
                   : "text-gray-600 dark:text-gray-400"
               }`}
             >
@@ -417,21 +420,15 @@ export default function NewCampaignDialog() {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                   Category
                 </label>
-                <Select
+                <Input
+                  type="text"
+                  name="category"
                   value={form.category}
-                  onValueChange={(value) => handleSelectChange("category", value)}
-                >
-                  <SelectTrigger className="h-11 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent className="dark:bg-gray-800">
-                    {categories.map((cat) => (
-                      <SelectItem key={cat._id} value={cat._id}>
-                        {cat.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={handleChange}
+                  placeholder="Enter campaign category (e.g., Marketing)"
+                  className="h-11 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400"
+                  required
+                />
               </div>
 
               {/* Message Type */}
@@ -441,7 +438,9 @@ export default function NewCampaignDialog() {
                 </label>
                 <Select
                   value={form.messageType}
-                  onValueChange={(value) => handleSelectChange("messageType", value)}
+                  onValueChange={(value) =>
+                    handleSelectChange("messageType", value)
+                  }
                 >
                   <SelectTrigger className="h-11 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600">
                     <SelectValue />
@@ -484,7 +483,9 @@ export default function NewCampaignDialog() {
               {/* Email Content */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  {form.messageType === "email" ? "Email Content" : "Message Content"}
+                  {form.messageType === "email"
+                    ? "Email Content"
+                    : "Message Content"}
                 </label>
                 <Textarea
                   name="emailContent"
