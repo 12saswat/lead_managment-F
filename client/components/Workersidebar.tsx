@@ -1,5 +1,7 @@
 import { LogOut, Plus, LayoutDashboard, Users, Copy, FileText, MessageSquare } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import axios from "@/lib/Axios";
 import {
   Sidebar,
   SidebarContent,
@@ -43,16 +45,6 @@ const items = [
     url: "/leads/conversation",
     icon: MessageSquare,
   },
-  // {
-  //   title: "Campaigns",
-  //   url: "",
-  //   icon: Mail,
-  // },
-  {
-    title: "Documents",
-    url: "#",
-    icon: FileText,
-  },
 ]
 
 const WorkerSidebar = () => {
@@ -68,6 +60,14 @@ const WorkerSidebar = () => {
     });
     router.push("/worker/auth/login");
   };
+
+  const [user, setUser] = useState(); 
+  useEffect(() => {
+    axios.get("/user/current").then((res) => {
+      if (res.data.data.name) setUser(res.data.data.name);
+      console.log("Current user:", res.data.data.name);
+    });
+  }, [user]);
 
 
   const pathname = usePathname();
@@ -115,7 +115,7 @@ const WorkerSidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout} className="cursor-pointer">
               <LogOut size={16} />
-              <span>Abhay Kushwaha</span>
+              <span>{user}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

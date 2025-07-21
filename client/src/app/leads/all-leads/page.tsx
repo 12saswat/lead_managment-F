@@ -683,7 +683,7 @@ const App: React.FC = () => {
                                     onSubmit={async (e) => {
                                       e.preventDefault();
                                       try {
-                                        await axios.post(`/lead//${activeLeadId}/follow-up`, {
+                                        await axios.post(`/lead/${activeLeadId}/follow-up`, {
                                           followUpDate: followUpForm.date,
                                           conclusion: followUpForm.conclusion,
                                         });
@@ -692,7 +692,8 @@ const App: React.FC = () => {
                                         setShowFollowUpDialog(false);
                                         setFollowUpForm({ date: '', conclusion: '' });
                                       } catch (err: any) {
-                                        toast.error(err?.response?.data?.message || 'Failed to add follow-up.');
+                                        console.error("Error adding follow-up:", err?.response?.data?.error.message);
+                                        toast.error(err?.response?.data?.error.message || 'Failed to add follow-up.');
                                       }
                                     }}
                                   >
@@ -758,7 +759,7 @@ const App: React.FC = () => {
                                         setShowEndConvoDialog(false);
                                         setEndConvoForm({ type: 'positive', conclusion: '' });
                                       } catch (err: any) {
-                                        toast.error(err?.response?.data?.message || 'Failed to end conversation.');
+                                        toast.error(err?.response?.data?.error.message || 'Failed to end conversation.');
                                       }
                                     }}
                                   >
@@ -890,7 +891,8 @@ const App: React.FC = () => {
                                     setShowFollowUpDialog(false);
                                     setFollowUpForm({ date: '', conclusion: '' });
                                   } catch (err: any) {
-                                    toast.error(err?.response?.data?.message || 'Failed to add follow-up.');
+                                    console.error("Error: ",err?.response?.data?.error.message);
+                                    toast.error(err?.response?.data?.error.message || 'Failed to add follow-up.');
                                   }
                                 }}
                               >
@@ -956,7 +958,7 @@ const App: React.FC = () => {
                                     setShowEndConvoDialog(false);
                                     setEndConvoForm({ type: 'positive', conclusion: '' });
                                   } catch (err: any) {
-                                    toast.error(err?.response?.data?.message || 'Failed to end conversation.');
+                                    toast.error(err?.response?.data?.error.message || 'Failed to end conversation.');
                                   }
                                 }}
                               >

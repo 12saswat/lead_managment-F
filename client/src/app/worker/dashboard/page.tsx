@@ -1,192 +1,280 @@
 "use client";
 
-import { Calendar, CheckCircle, Mail, MessageSquare, Plus } from "lucide-react";
+import {
+  Users,
+  Activity,
+  AlertTriangle,
+  Plus,
+  CheckCircle,
+  CalendarClock,
+  Clock,
+  Target,
+  Timer,
+  Star,
+  AlertCircle,
+  List,
+  BarChart as BarChartIcon,
+} from "lucide-react";
 import React from "react";
 import { useRouter } from "next/navigation";
+import {
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
+import axios from "@/lib/Axios"; // Assuming you have a configured axios instance
+import { Button } from "@/components/ui/button"; // Assuming a shadcn/ui Button component
+import { Calendar } from "@/components/ui/calendar"; // Assuming a shadcn/ui Calendar component
 
-const leads = [
-  {
-    name: "John Smith",
-    company: "Tech Corp",
-    status: "New",
-    priority: "High",
-    category: "Sales",
-    assignedBy: "Manager Alice",
-  },
-  {
-    name: "Sarah Wilson",
-    company: "Design Studio",
-    status: "In Progress",
-    priority: "Medium",
-    category: "Marketing",
-    assignedBy: "Manager Bob",
-  },
-  {
-    name: "Mike Brown",
-    company: "Retail Chain",
-    status: "Qualified",
-    priority: "High",
-    category: "Support",
-    assignedBy: "Manager Carol",
-  },
+// --- MOCK DATA (to be replaced by API calls) ---
+const kpiData = {
+  totalAssignedLeads: { value: 45, change: 5 },
+  pendingFollowUp: { value: 12, change: -3 },
+  leadsFollowUpToday: { value: 8, change: 2 },
+  leadsMissingFollowUp: { value: 3, change: 1 },
+};
+
+const categoryProfitableData = [
+  { name: "Sales", profitable: 20, nonProfitable: 10 },
+  { name: "Marketing", profitable: 15, nonProfitable: 8 },
+  { name: "Healthcare", profitable: 12, nonProfitable: 5 },
+  { name: "Services", profitable: 10, nonProfitable: 7 },
 ];
+
+const PIE_COLORS = ["#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe"];
+
+const todayFollowUpList = [
+  { id: "f1", name: "John Smith", company: "Tech Corp", time: "10:00 AM", status: "Pending" },
+  { id: "f2", name: "Sarah Wilson", company: "Design Studio", time: "2:00 PM", status: "Scheduled" },
+  { id: "f3", name: "Mike Brown", company: "Retail Chain", time: "4:00 PM", status: "Pending" },
+];
+
+const recentAssignments = [
+  { id: "a1", name: "Alice Johnson", company: "InnoTech", assignedDate: "2025-07-20", status: "New" },
+  { id: "a2", name: "Bob Lee", company: "MarketPros", assignedDate: "2025-07-19", status: "In Progress" },
+  { id: "a3", name: "Carol Davis", company: "HealthPlus", assignedDate: "2025-07-18", status: "New" },
+];
+
+const upcomingFollowUps = [
+  { date: new Date("2025-07-22"), events: [{ name: "Tech Corp Follow-up", time: "11:00 AM" }] },
+  { date: new Date("2025-07-23"), events: [{ name: "Design Studio Call", time: "3:00 PM" }, { name: "Retail Meeting", time: "5:00 PM" }] },
+];
+
+const overdueFollowUps = [
+  { id: "o1", name: "David Evans", company: "FinServe", dueDate: "2025-07-19" },
+  { id: "o2", name: "Eva Foster", company: "AdAgency", dueDate: "2025-07-18" },
+];
+
+// --- Helper Components ---
+const KpiCard = ({ title, value, change, icon, unit = "" }: { title: string, value: number, change: number, icon: React.ReactNode, unit?: string }) => {
+  const isPositive = change >= 0;
+  return (
+    <div className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1">
+      <div className="flex justify-between items-center">
+        <div className="text-gray-400">{icon}</div>
+        <div className={`flex items-center text-sm font-semibold ${isPositive ? "text-green-500" : "text-red-500"}`}>
+          {isPositive ? "▲" : "▼"} {Math.abs(change)}%
+        </div>
+      </div>
+      <h2 className="text-3xl font-bold text-gray-800 dark:text-white mt-2">{value}{unit}</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
+    </div>
+  );
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "New":
-      return "bg-blue-100 dark:bg-blue-300 text-blue-700";
-    case "In Progress":
-      return "bg-yellow-100 text-yellow-700";
-    case "Qualified":
-      return "bg-green-100 text-green-700";
-    default:
-      return "bg-gray-100 text-gray-700";
+    case "Pending": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+    case "Scheduled": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+    case "New": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+    case "In Progress": return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+    default: return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
   }
 };
 
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case "High":
-      return "bg-red-100 dark:bg-red-300 text-red-700";
-    case "Medium":
-      return "bg-orange-100 dark:bg-orange-300 text-orange-700";
-    case "Low":
-      return "bg-green-100 text-green-700";
-    default:
-      return "bg-gray-100 text-gray-700";
+const formatDateRelative = (dateString: string) => {
+  const date = new Date(dateString);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return "Today";
   }
+  if (date.toDateString() === tomorrow.toDateString()) {
+    return "Tomorrow";
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 const WorkerDashboardPage = () => {
   const router = useRouter();
 
+  // In a real app, you would fetch data here using useEffect
+  // For example:
+  // useEffect(() => {
+  //   axios.get('/api/worker/dashboard/kpis').then(res => setKpiData(res.data));
+  //   // ... fetch other data points
+  // }, []);
+
   return (
-    <div className="p-8 bg-gradient-to-br from-indigo-50 via-slate-50 to-blue-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-800 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Worker Dashboard
           </h1>
-          <p className="text-md text-gray-600 mt-1 dark:text-gray-300">
-            Stay organized, close faster, and stay accountable.
+          <p className="text-md text-gray-500 mt-1 dark:text-gray-400">
+            Welcome back, manage your assigned leads and follow-ups.
           </p>
         </div>
-        {/* <button
-          onClick={() => router.push("/leads/upload-leads")}
-          className="flex items-center gap-2 px-4 py-2 bg-black text-white text-sm font-semibold rounded-md shadow cursor-pointer "
-        >
-          <Plus className="w-4 h-4" />  
-          Add Leads
-        </button> */}
+        <div className="flex items-center gap-4 mt-4 sm:mt-0">
+          <Button onClick={() => router.push("/leads/upload-leads")}>
+            <Plus className="w-4 h-4 mr-2" /> Add Lead
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Card */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {[
-          {
-            title: "All Leads",
-            value: 28,
-            icon: <Mail className="w-10 h-10" />,
-            color: "text-blue-500 dark:text-blue-400",
-          },
-          {
-            title: "Assigned Leads",
-            value: 12,
-            icon: <Calendar className="w-10 h-10" />,
-            color: "text-yellow-500 dark:text-yellow-400",
-          },
-          {
-            title: "Upcoming Follow-ups",
-            value: 14,
-            icon: <CheckCircle className="w-10 h-10" />,
-            color: "text-green-500 dark:text-green-400",
-          },
-          {
-            title: "Chats Ongoing",
-            value: 7,
-            icon: <MessageSquare className="w-10 h-10" />,
-            color: "text-indigo-500 dark:text-indigo-400",
-          },
-        ].map(({ title, value, icon, color }, i) => (
-          <div
-            key={i}
-            className="bg-white/70 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-sm transition-transform transform hover:scale-[1.02] cursor-default"
-          >
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-white">
-                  {title}
-                </p>
-                <h2 className={`text-3xl font-bold ${color}`}>{value}</h2>
-              </div>
-              <div className={`w-12 h-12 ${color}`}>{icon}</div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <KpiCard title="Total Assigned Leads" value={kpiData.totalAssignedLeads.value} change={kpiData.totalAssignedLeads.change} icon={<Users className="w-6 h-6" />} />
+        <KpiCard title="Pending Follow-Ups" value={kpiData.pendingFollowUp.value} change={kpiData.pendingFollowUp.change} icon={<Activity className="w-6 h-6" />} />
+        <KpiCard title="Follow-Ups Today" value={kpiData.leadsFollowUpToday.value} change={kpiData.leadsFollowUpToday.change} icon={<CalendarClock className="w-6 h-6" />} />
+        <KpiCard title="Leads with Missing Follow-Up" value={kpiData.leadsMissingFollowUp.value} change={kpiData.leadsMissingFollowUp.change} icon={<AlertCircle className="w-6 h-6" />} />
+      </div>
+
+      {/* Main Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Category Wise Profitable and Non-Profitable Leads Graph */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Category Wise Profitable vs Non-Profitable Leads</h3>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryProfitableData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="profitable" fill="#82ca9d" name="Profitable" />
+                  <Bar dataKey="nonProfitable" fill="#ff7300" name="Non-Profitable" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Recent Leads */}
-      <div className="bg-white dark:bg-gray-900 shadow-md border border-gray-100 dark:border-gray-700 rounded-xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Recent Leads
-          </h2>
-          <button
-            className="text-sm text-blue-600 hover:underline cursor-pointer dark:text-blue-400"
-            onClick={() => {
-              router.push("/leads/all-leads");
-            }}
-          >
-            View All
-          </button>
-        </div>
-        <hr className="w-full shadow-sm dark:border-gray-700" />
-
-        <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-          {leads.map((lead, index) => (
-            <li
-              key={index}
-              className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2"
-            >
-              <div className="flex flex-col justify-between gap-2">
-                <div className="flex gap-5">
-                  <p className="font-semibold text-gray-900 text-lg dark:text-white">
-                    {lead.name}
-                  </p>
-                  <div className="flex gap-2 mt-1 flex-wrap">
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(
-                        lead.status
-                      )}`}
-                    >
-                      {lead.status}
-                    </span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(
-                        lead.priority
-                      )}`}
-                    >
-                      {lead.priority}
-                    </span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-medium dark:bg-gray-800 dark:text-gray-200">
-                      {lead.category}
-                    </span>
+          {/* Today Follow-Up List */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Today's Follow-Up List</h3>
+              <button onClick={() => router.push('/worker/follow-ups')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
+            </div>
+            <ul className="space-y-4">
+              {todayFollowUpList.map(item => (
+                <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white">{item.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{item.company} - {item.time}</p>
                   </div>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-300">
-                  {lead.company}
-                </p>
-              </div>
-              <div className="text-sm text-gray-600 text-right dark:text-gray-300">
-                <p className="mb-1">Assigned by</p>
-                <p className="font-medium text-gray-800 dark:text-white">
-                  {lead.assignedBy}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>
+                    {item.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Recent Assignment Table */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Recent Assignments</h3>
+              <button onClick={() => router.push('/worker/assignments')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                  <tr>
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Company</th>
+                    <th className="p-3">Assigned Date</th>
+                    <th className="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentAssignments.map(item => (
+                    <tr key={item.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <td className="p-3 font-medium text-gray-900 dark:text-white">{item.name}</td>
+                      <td className="p-3 text-gray-600 dark:text-gray-300">{item.company}</td>
+                      <td className="p-3 text-gray-600 dark:text-gray-300">{formatDateRelative(item.assignedDate)}</td>
+                      <td className="p-3">
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-8">
+          {/* Calendar Style Upcoming Follow-Ups */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Upcoming Follow-Ups</h3>
+            <Calendar
+              mode="single"
+              className="rounded-md border"
+              modifiers={{
+                booked: upcomingFollowUps.map(up => up.date),
+              }}
+              modifiersStyles={{
+                booked: { color: 'white', backgroundColor: '#6366f1' },
+              }}
+            />
+            <ul className="mt-4 space-y-2">
+              {upcomingFollowUps.map((up, index) => (
+                <li key={index} className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>{formatDateRelative(up.date.toISOString())}:</strong> {up.events.map(e => `${e.name} at ${e.time}`).join(', ')}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Overdue Follow-Ups */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Overdue Follow-Ups</h3>
+              <button onClick={() => router.push('/worker/overdue')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
+            </div>
+            <ul className="space-y-4">
+              {overdueFollowUps.map(item => (
+                <li key={item.id} className="flex items-center space-x-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800 dark:text-white">{item.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{item.company} - Due: {formatDateRelative(item.dueDate)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
