@@ -6,7 +6,6 @@ import {
   TrendingUp,
   Send,
   Clock,
-  BarChart3,
   Search,
   Eye,
   Edit,
@@ -16,14 +15,13 @@ import {
   X,
   AlertTriangle,
   Users,
-  Calendar,
-  Activity,
   Loader2
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import NewCampaignDialog from '../../../../components/CampaignDialog';
 import axios from '@/lib/Axios'; // Assuming this is your configured axios instance
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Define TypeScript interfaces based on API response
 interface Lead {
@@ -225,6 +223,8 @@ const ViewLeadsDialog: React.FC<ViewLeadsDialogProps> = ({ isOpen, onClose, camp
 };
 
 const CampaignManagement: React.FC = () => {
+  const router = useRouter();
+  
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -264,6 +264,8 @@ const CampaignManagement: React.FC = () => {
       setIsLoading(true);
       try {
         const response = await axios.get('/campaign/all');
+        // console.log("Fetched campaigns:", response.data);
+        
         const formattedCampaigns = response.data.data.map((c: any): Campaign => ({
           id: c._id,
           title: c.title,
@@ -274,7 +276,7 @@ const CampaignManagement: React.FC = () => {
           sentCount: c.totalLeads,
           totalCount: c.totalLeads,
           openRate: 0,
-          createdBy: "API User",
+          createdBy: c.createdBy || 'Manager',
           createdAt: new Date(c.createdAt).toLocaleDateString(),
           lastSent: new Date(c.createdAt).toLocaleDateString(),
           leads: c.leads || [],
@@ -331,7 +333,9 @@ const CampaignManagement: React.FC = () => {
       }
     }
   };
-
+const onEdit = (id: string) => {
+    router.push(`/manager/campaign/update/${id}`);
+  };
   const handleSendCampaign = (id: string) => {
     const campaign = campaigns.find(c => c.id === id);
     if (campaign) {
@@ -339,6 +343,10 @@ const CampaignManagement: React.FC = () => {
         isOpen: true,
         campaignId: id,
         campaignTitle: campaign.title
+      });
+      const data=axios.post(`/campaign/send/${id}`, {
+        // Include any necessary data for the send request
+        campaignId: id
       });
     }
   };
@@ -374,7 +382,7 @@ const CampaignManagement: React.FC = () => {
       console.error("View leads error:", error);
     }
   };
-
+  
   // Analytics Data Derivation
   const campaignTypeData = useMemo(() => {
     const counts = campaigns.reduce((acc, campaign) => {
@@ -504,7 +512,7 @@ const CampaignManagement: React.FC = () => {
             <Eye className="h-4 w-4 text-gray-500" />
           </button>
           {campaign.status === 'draft' && (
-            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+            <button onClick={() => onEdit(campaign.id)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
               <Edit className="h-4 w-4 text-gray-500" />
             </button>
           )}

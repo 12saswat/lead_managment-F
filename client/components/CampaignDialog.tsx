@@ -79,9 +79,11 @@ export default function NewCampaignDialog() {
             category: lead.category?.title || "",
             color: lead.category?.color || "#6366f1",
           }));
+          console.log("Dialog opened, fetching categories and leads",data);
         setLeads(mappedLeads);
       });
     }
+    
   }, [open]);
 
   // Filter leads based on search term and category
