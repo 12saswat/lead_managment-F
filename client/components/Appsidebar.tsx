@@ -1,98 +1,79 @@
-import {
-  LogOut,
-  Plus,
-  LayoutDashboard,
-  Users,
-  Copy,
-  Layers,
-  Briefcase,
-  Mail,
-  FileText,
-  MessageSquare,
-} from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarSeparator,
-} from "@/components/ui/sidebar";
+"use client";
+
+// React and Next.js imports
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
-import {usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import axios from "@/lib/Axios";
+
+// Icon imports
+import {
+  LogOut, Plus, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, MessageSquare,
+} from "lucide-react";
+
+// UI Components
+import {
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton,
+  SidebarMenuItem, SidebarSeparator,
+} from "@/components/ui/sidebar";
+
+// Define the type for the user data
+interface User {
+  name: string;
+  role: string;
+}
 
 // Menu items.
 const items = [
-  {
-    title: "Dashboard",
-    url: "/manager/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "All Leads",
-    url: "/leads/all-leads",
-    icon: Users,
-  },
-  {
-    title: "Add Lead",
-    url: "/leads/upload-leads",
-    icon: Plus,
-  },
-  {
-    title: "Bulk Lead",
-    url: "/leads/upload-leads-bulk",
-    icon: Copy,
-  },
-  {
-    title: "Categories",
-    url: "/manager/category",
-    icon: Layers,
-  },
-  {
-    title: "Assignments",
-    url: "/manager/assignment",
-    icon: Briefcase,
-  },
-  {
-    title: "Conversation",
-    url: "/leads/conversation",
-    icon: MessageSquare,
-  },
-  {
-    title: "Campaigns",
-    url: "/manager/campaign",
-    icon: Mail,
-  },
-  {
-    title: "Documents",
-    url: "#",
-    icon: FileText,
-  },
+  { title: "Dashboard", url: "/manager/dashboard", icon: LayoutDashboard },
+  { title: "All Leads", url: "/leads/all-leads", icon: Users },
+  { title: "Add Lead", url: "/leads/upload-leads", icon: Plus },
+  { title: "Bulk Lead", url: "/leads/upload-leads-bulk", icon: Copy },
+  { title: "Categories", url: "/manager/category", icon: Layers },
+  { title: "Assignments", url: "/manager/assignment", icon: Briefcase },
+  { title: "Conversation", url: "/leads/conversation", icon: MessageSquare },
+  { title: "Campaigns", url: "/manager/campaign", icon: Mail },
 ];
 
 const Appsidebar = () => {
   const router = useRouter();
-    const handleLogout = () => {
-      document.cookie = "token=; path=/; expires=Thu, 01 Jan 2025 00:00:00 GMT";
-      const cookies = document.cookie.split(";").map(cookie => cookie.trim());
-      cookies.forEach(cookie => {
-        if (cookie.startsWith("002")) {
-          const name = cookie.split("=")[0];
-          document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 2025 00:00:00 GMT`;
-        }
-      });
-      router.push("/manager/auth/login");
-    };
-  
   const pathname = usePathname();
+
+  // State to store the user data
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // useEffect to fetch user data when the component mounts
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('/user/current');
+        if (response.data.success) {
+          setUser(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch current user:", error);
+        // Optional: Redirect to login if auth fails
+        // router.push("/manager/auth/login");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [router]); // Added router to dependency array as it's used inside the effect
+
+  const handleLogout = () => {
+    // Clear token and other relevant cookies
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "002=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    router.push("/manager/auth/login");
+  };
+  
   return (
-    <Sidebar collapsible="icon" side="left" className=" backdrop-blur-sm border-1 border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/90">
+    <Sidebar collapsible="icon" side="left" className="backdrop-blur-sm border-r border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/90">
       <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -111,21 +92,23 @@ const Appsidebar = () => {
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {
-                items.map(item=>(
-                  <SidebarMenuItem
-                    className={`rounded-xl ${item.url === pathname ? "bg-gray-200 text-black" : "rounded"}`}
-                    key={item.title}
-                  >
+              {items.map(item => (
+                <SidebarMenuItem
+                  className={`rounded-xl transition-colors ${
+                    pathname.startsWith(item.url)
+                      ? "bg-gray-200 dark:bg-gray-700 text-black dark:text-white"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  }`}
+                  key={item.title}
+                >
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>
-                      <item.icon />
+                      <item.icon size={18} />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                ))
-              }
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -134,9 +117,20 @@ const Appsidebar = () => {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout}>
-              <LogOut size={16} />
-              <span>Rahul Kumar</span>
+            <SidebarMenuButton onClick={handleLogout} className="w-full justify-start">
+              <LogOut size={16} className="flex-shrink-0" />
+              <div className="flex flex-col items-start ml-2 overflow-hidden">
+                {isLoading ? (
+                  <span className="text-sm text-gray-500">Loading...</span>
+                ) : user ? (
+                  <>
+                    <span className="font-semibold text-sm truncate">{user.name}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role}</span>
+                  </>
+                ) : (
+                  <span className="text-sm">Not Logged In</span>
+                )}
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
