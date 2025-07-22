@@ -46,6 +46,7 @@ interface Lead {
 }
 
 export default function NewCampaignDialog() {
+  const [loginuser, setUser] = useState<{ name: string; role: string } | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
@@ -69,11 +70,11 @@ export default function NewCampaignDialog() {
         if (Array.isArray(res.data.data)) setCategories(res.data.data);
       });
 
-      axios.get("/lead/getalllead").then((res) => {
-        const data = res.data?.data?.leads || [];
+      axios.get("/lead/leads").then((res) => {
+        const data = res.data?.data || [];
         const mappedLeads = data
       .map((lead: any) => ({
-            id: lead.id,
+            id: lead._id,
             name: lead.name,
             position: lead.position || "",
             category: lead.category?.title || "",
@@ -183,6 +184,15 @@ export default function NewCampaignDialog() {
     
     try {
       // Map form state to the required API payload
+      await axios.get("/user/current").then((res) => {
+        const user = res.data.data;
+        if (!user) {
+          throw new Error("User not found");
+        }
+        console.log("Current user data:", user.name);
+        
+        setUser(user.name);
+      });
       const payload = {
         leadIds: selectedLeadIds,
         title: form.campaignTitle,
@@ -190,6 +200,7 @@ export default function NewCampaignDialog() {
         description: form.emailContent,
         type: form.messageType === "email" ? "mail" : "sms",
         category: form.category,
+        createdBy:loginuser
       };
 
       // Use the new API endpoint
@@ -317,44 +328,46 @@ export default function NewCampaignDialog() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {filteredLeads.map((lead) => (
-                    <div
-                      key={lead.id}
-                      className={`bg-white dark:bg-gray-900 rounded-lg border transition-all duration-200 ${
-                        selectedLeadIds.includes(lead.id)
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                      }`}
-                    >
-                      <label className="flex items-center p-4 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedLeadIds.includes(lead.id)}
-                          onChange={() => handleLeadCheckbox(lead.id)}
-                          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
-                        />
-                        <div className="ml-4 flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                            {lead.name}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
-                            {lead.position || "No position specified"}
-                          </p>
-                          <div className="flex items-center mt-2">
-                            <span
-                              className="w-3 h-3 rounded-full mr-2"
-                              style={{ backgroundColor: lead.color }}
-                            />
-                            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
-                              {lead.category || "No category"}
-                            </span>
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
+               <div className="space-y-2">
+  {filteredLeads.map((lead) => (
+    <div
+      key={lead.id}
+      className={`bg-white dark:bg-gray-900 rounded-lg border transition-all duration-200 ${
+        selectedLeadIds.includes(lead.id)
+          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+      }`}
+    >
+      <label className="flex items-center p-4 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={selectedLeadIds.includes(lead.id)}
+          // --- THIS IS THE LINE TO FIX ---
+          onChange={() => handleLeadCheckbox(lead.id)} 
+          // -----------------------------
+          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+        />
+        <div className="ml-4 flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            {lead.name}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
+            {lead.position || "No position specified"}
+          </p>
+          <div className="flex items-center mt-2">
+            <span
+              className="w-3 h-3 rounded-full mr-2"
+              style={{ backgroundColor: lead.color }}
+            />
+            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+              {lead.category || "No category"}
+            </span>
+          </div>
+        </div>
+      </label>
+    </div>
+  ))}
+</div>
               )}
             </div>
           </div>
