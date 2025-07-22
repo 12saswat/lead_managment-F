@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, ChevronDown, MessageSquare, PhoneOffIcon, Trash2, Edit, Filter, X } from 'lucide-react';
+import { Search, ChevronDown, MessageSquare, PhoneOffIcon, Trash2, Edit, Filter, X, Eye } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import axios from "@/lib/Axios";
 import Pagination from '@/../components/Pagination';
@@ -26,6 +26,7 @@ interface Lead {
   status: 'new' | 'in-progress' | 'follow-up' | 'closed';
   priority: 'high' | 'medium' | 'low';
   assignedTo: { name: string | null }; // Allowed null for unassigned leads
+  document: string[];
   category: string;
   catColor: string;
   lastContact: string;
@@ -56,6 +57,7 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
       status: lead.status || "new",
       priority: lead.priority || "low",
       assignedTo: lead.assignedTo || { name: "Unassigned" },
+      document: lead.documents || [],
       category: lead.category ? lead.category.title : "Un-Categorized",
       catColor: lead.category ? lead.category.color : "#d1d5db",
       lastContact: new Date(lead.createdAt).toLocaleDateString("en-GB"),
@@ -216,8 +218,13 @@ const App: React.FC = () => {
   const [followUpForm, setFollowUpForm] = useState({ date: '', conclusion: '' });
   const [endConvoForm, setEndConvoForm] = useState({ type: 'positive', conclusion: '' });
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   // Detect worker cookie (001)
   const [isWorker, setIsWorker] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [categories, setCategories] = useState<Array<{ title: string; color: string }>>([]);
   useEffect(() => {
     const cookies = document.cookie.split(';').map(c => c.trim());
     setIsWorker(cookies.some(c => c.startsWith('001')));
@@ -244,6 +251,20 @@ const App: React.FC = () => {
     getLeads();
   }, [currentPage]);
 
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('/category');
+        if (response.data.success) {
+          setCategories(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Extract unique workers from the leads data
   const workers = useMemo(() => {
@@ -297,8 +318,18 @@ const App: React.FC = () => {
       });
     }
 
+    // Apply status filter
+    if (selectedStatus !== 'All') {
+      currentLeads = currentLeads.filter((lead) => lead.status === selectedStatus);
+    }
+
+    // Apply category filter
+    if (selectedCategory !== 'All') {
+      currentLeads = currentLeads.filter((lead) => lead.category === selectedCategory);
+    }
+
     return currentLeads;
-  }, [leads, searchTerm, selectedWorker, assignmentFilter, showDateFilter, selectedDate]);
+  }, [leads, searchTerm, selectedWorker, assignmentFilter, showDateFilter, selectedDate, selectedStatus, selectedCategory]);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -376,6 +407,80 @@ const App: React.FC = () => {
     }
   };
 
+  // Document Viewer Modal
+  const DocumentViewer = ({
+    documents,
+    isOpen,
+    onClose
+  }: {
+    documents: string[];
+    isOpen: boolean;
+    onClose: () => void;
+  }) => {
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-3xl mx-5 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Documents ({documents.length})
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          {documents.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 max-h-[70vh] overflow-y-auto">
+              {documents.map((doc, index) => (
+                <div
+                  key={index}
+                  className="border dark:border-gray-700 rounded-lg p-4"
+                >
+                  {doc.toLowerCase().endsWith('.pdf') ? (
+                    <iframe
+                      src={doc}
+                      className="w-full h-[500px] rounded-lg"
+                      title={`Document ${index + 1}`}
+                    />
+                  ) : doc.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? (
+                    <img
+                      src={doc}
+                      alt={`Document ${index + 1}`}
+                      className="max-w-full h-auto rounded-lg"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {doc.split('/').pop()}
+                      </span>
+                      <a
+                        href={doc}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        Download
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              No documents available for this lead.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const loadLeads = useCallback(async () => {
     try {
       const data = await fetchLeads(currentPage, setCurrentPage, setTotalPages);
@@ -447,20 +552,87 @@ const App: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 items-center bg-white dark:bg-gray-800 rounded-lg p-6 mb-6 shadow-sm">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-800" size={20} />
               <input
                 type="text"
                 placeholder="Search leads by name, position, or email..."
-                className="w-full lg:w-1/2 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                className="w-full lg:w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
             </div>
 
+            {/* Status Filter Dropdown */}
+            <CustomDropdown
+              trigger={
+                <>
+                  <span className="truncate max-w-[120px] text-gray-600">{selectedStatus === 'All' ? 'All Statuses' : selectedStatus}</span>
+                  <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
+                </>
+              }
+            >
+              <DropdownItem
+                onClick={() => setSelectedStatus('All')}
+                className={selectedStatus === 'All' ? 'bg-blue-50 text-blue-600' : ''}
+              >
+                All Statuses
+              </DropdownItem>
+              <DropdownItem
+                onClick={() => setSelectedStatus('new')}
+                className={selectedStatus === 'new' ? 'bg-blue-50 text-blue-600' : ''}
+              >
+                New
+              </DropdownItem>
+              <DropdownItem
+                onClick={() => setSelectedStatus('in-progress')}
+                className={selectedStatus === 'in-progress' ? 'bg-blue-50 text-blue-600' : ''}
+              >
+                In Progress
+              </DropdownItem>
+              <DropdownItem
+                onClick={() => setSelectedStatus('follow-up')}
+                className={selectedStatus === 'follow-up' ? 'bg-blue-50 text-blue-600' : ''}
+              >
+                Follow Up
+              </DropdownItem>
+              <DropdownItem
+                onClick={() => setSelectedStatus('closed')}
+                className={selectedStatus === 'closed' ? 'bg-blue-50 text-blue-600' : ''}
+              >
+                Closed
+              </DropdownItem>
+            </CustomDropdown>
+
+            {/* Category Filter Dropdown */}
+            <CustomDropdown
+              trigger={
+                <>
+                  <span className="truncate max-w-[120px] text-gray-600">{selectedCategory === 'All' ? 'All Categories' : selectedCategory}</span>
+                  <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
+                </>
+              }
+            >
+              <DropdownItem
+                onClick={() => setSelectedCategory('All')}
+                className={selectedCategory === 'All' ? 'bg-blue-50 text-blue-600' : ''}
+              >
+                All Categories
+              </DropdownItem>
+              {categories.map((category) => (
+                <DropdownItem
+                  key={category.title}
+                  onClick={() => setSelectedCategory(category.title)}
+                  className={selectedCategory === category.title ? 'bg-blue-50 text-blue-600' : ''}
+                >
+                  {category.title}
+                </DropdownItem>
+              ))}
+            </CustomDropdown>
+
             {/* Date Filter for worker */}
             {showDateFilter && (
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-400">Select by Follow-Up Date:</label>
+                <label className="text-sm font-medium text-gray-600">Select by Follow-Up Date:</label>
 
                 <Popover>
                   <PopoverTrigger asChild>
@@ -534,7 +706,7 @@ const App: React.FC = () => {
                 <CustomDropdown
                   trigger={
                     <>
-                      <span className="truncate max-w-[120px]">{selectedWorker}</span>
+                      <span className="truncate max-w-[120px]">{selectedWorker === 'All' ? 'All Workers' : selectedWorker}</span>
                       <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
                     </>
                   }
@@ -672,6 +844,7 @@ const App: React.FC = () => {
                                     <button
                                       onClick={() => {
                                         setShowFollowUpDialog(false);
+                                        loadLeads();
                                         setFollowUpForm({ date: '', conclusion: '' });
                                       }}
                                       className="text-gray-500 hover:text-red-500 transition"
@@ -690,6 +863,7 @@ const App: React.FC = () => {
                                         console.log("Follow-up Form Data:", followUpForm);
                                         toast.success('Follow-up added successfully!');
                                         setShowFollowUpDialog(false);
+                                        loadLeads();
                                         setFollowUpForm({ date: '', conclusion: '' });
                                       } catch (err: any) {
                                         console.error("Error adding follow-up:", err?.response?.data?.error.message);
@@ -738,6 +912,7 @@ const App: React.FC = () => {
                                     <button
                                       onClick={() => {
                                         setShowEndConvoDialog(false);
+                                        loadLeads();
                                         setEndConvoForm({ type: 'positive', conclusion: '' });
                                       }}
                                       className="text-gray-500 hover:text-red-500 transition"
@@ -757,6 +932,7 @@ const App: React.FC = () => {
                                         });
                                         toast.success('Conversation ended successfully!');
                                         setShowEndConvoDialog(false);
+                                        loadLeads();
                                         setEndConvoForm({ type: 'positive', conclusion: '' });
                                       } catch (err: any) {
                                         toast.error(err?.response?.data?.error.message || 'Failed to end conversation.');
@@ -800,6 +976,24 @@ const App: React.FC = () => {
                                   </form>
                                 </div>
                               </div>
+                            )}
+
+                            {lead.document.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  setSelectedDocuments(lead.document);
+                                  setShowDocumentModal(true);
+                                }}
+                                className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                                title="View Documents"
+                              >
+                                <Eye size={18} />
+                                {lead.document.length > 1 && (
+                                  <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                    {lead.document.length}
+                                  </span>
+                                )}
+                              </button>
                             )}
 
                             <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
@@ -871,6 +1065,7 @@ const App: React.FC = () => {
                                 <button
                                   onClick={() => {
                                     setShowFollowUpDialog(false);
+                                    loadLeads();
                                     setFollowUpForm({ date: '', conclusion: '' });
                                   }}
                                   className="text-gray-500 hover:text-red-500 transition"
@@ -889,9 +1084,10 @@ const App: React.FC = () => {
                                     console.log("Follow-up Form Data:", followUpForm);
                                     toast.success('Follow-up added successfully!');
                                     setShowFollowUpDialog(false);
+                                    loadLeads();
                                     setFollowUpForm({ date: '', conclusion: '' });
                                   } catch (err: any) {
-                                    console.error("Error: ",err?.response?.data?.error.message);
+                                    console.error("Error: ", err?.response?.data?.error.message);
                                     toast.error(err?.response?.data?.error.message || 'Failed to add follow-up.');
                                   }
                                 }}
@@ -937,6 +1133,7 @@ const App: React.FC = () => {
                                 <button
                                   onClick={() => {
                                     setShowEndConvoDialog(false);
+                                    loadLeads();
                                     setEndConvoForm({ type: 'positive', conclusion: '' });
                                   }}
                                   className="text-gray-500 hover:text-red-500 transition"
@@ -956,6 +1153,7 @@ const App: React.FC = () => {
                                     });
                                     toast.success('Conversation ended successfully!');
                                     setShowEndConvoDialog(false);
+                                    loadLeads();
                                     setEndConvoForm({ type: 'positive', conclusion: '' });
                                   } catch (err: any) {
                                     toast.error(err?.response?.data?.error.message || 'Failed to end conversation.');
@@ -999,6 +1197,24 @@ const App: React.FC = () => {
                               </form>
                             </div>
                           </div>
+                        )}
+
+                        {lead.document.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setSelectedDocuments(lead.document);
+                              setShowDocumentModal(true);
+                            }}
+                            className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                            title="View Documents"
+                          >
+                            <Eye size={18} />
+                            {lead.document.length > 1 && (
+                              <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                {lead.document.length}
+                              </span>
+                            )}
+                          </button>
                         )}
 
                         <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
@@ -1061,6 +1277,16 @@ const App: React.FC = () => {
         onConfirm={handleConfirmDelete}
         title="Confirm Deletion"
         message="Are you sure you want to delete this lead? This action cannot be undone."
+      />
+
+      {/* Document Viewer Modal */}
+      <DocumentViewer
+        documents={selectedDocuments}
+        isOpen={showDocumentModal}
+        onClose={() => {
+          setShowDocumentModal(false);
+          setSelectedDocuments([]);
+        }}
       />
     </div>
   );

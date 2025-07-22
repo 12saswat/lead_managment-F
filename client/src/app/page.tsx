@@ -192,12 +192,12 @@ const StepCard = ({ number, icon, title, description }: { number: string; icon: 
             </div>
 
             {/* Enhanced Modern Navbar */}
-           <nav className="navbar-container px-6 py-4 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl w-full fixed top-0 z-50 border-b border-white/20 dark:border-gray-800/20 shadow-lg shadow-black/5">
+           <nav className="navbar-container px-6 py-2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl w-full fixed top-0 z-50 border-b border-white/20 dark:border-gray-800/20 shadow-lg shadow-black/5">
     <div className="flex items-center justify-between w-full max-w-7xl mx-auto">
         <div className="navbar-item">
             <Link href="/" className="flex items-center gap-3 group">
                 <div className="relative">
-                    <Image src="/Indibus.jpg" alt="Indibus Logo" width={40} height={40} className='rounded-xl shadow-md group-hover:shadow-lg transition-shadow duration-300' />
+                    <Image src="/Indibus.jpg" alt="Indibus Logo" width={30} height={30} className='rounded-xl shadow-md group-hover:shadow-lg transition-shadow duration-300' />
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-500/20 to-purple-500/20 group-hover:opacity-100 opacity-0 transition-opacity duration-300"></div>
                 </div>
                 <span className="hidden sm:block font-bold text-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">LeadPro</span>
@@ -205,7 +205,7 @@ const StepCard = ({ number, icon, title, description }: { number: string; icon: 
         </div>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-1 bg-gray-100/50 dark:bg-gray-800/50 p-1 rounded-full border border-gray-200/50 dark:border-gray-700/50">
+        <div className="hidden md:flex items-center gap-1  p-1 rounded-full ">
             {[
                 { id: 'features', label: 'Features' }, { id: 'how-it-works', label: 'How it Works' },
                 { id: 'pricing', label: 'Pricing' }, { id: 'faq', label: 'FAQ' }

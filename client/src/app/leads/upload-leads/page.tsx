@@ -54,12 +54,13 @@ interface FormData {
   name: string;
   email: string;
   phoneNumber: string;
-  category: string; // This will store the ObjectId
+  category: string;
   position: string;
   leadSource: string;
   notes: string;
   priority: "high" | "medium" | "low";
-  document: File | null;
+  documents: File | null;
+  description?: string;
   status: "new" | "in-progress" | "follow-up" | "closed";
 }
 
@@ -80,7 +81,7 @@ export default function AddLeadForm(): JSX.Element {
     leadSource: "",
     notes: "",
     priority: "medium",
-    document: null,
+    documents: null,
     status: "new",
   });
 
@@ -149,29 +150,30 @@ export default function AddLeadForm(): JSX.Element {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
+    // Name is required
     if (!formData.name.trim()) {
       newErrors.name = "Full name is required";
     } else if (formData.name.length < 2) {
       newErrors.name = "Name must be at least 2 characters";
     }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    // Either email or phone is required
+    if (!formData.email && !formData.phoneNumber) {
+      newErrors.email = "Either email or phone number is required";
+      newErrors.phoneNumber = "Either email or phone number is required";
+    }
+    // Email format validation if provided
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
-
+    // Category validation
     if (!formData.category) {
       newErrors.category = "Please select a category";
     }
-
-    if (
-      formData.phoneNumber &&
-      !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phoneNumber.replace(/\s/g, ""))
-    ) {
+    // Phone number validation if provided
+    if (formData.phoneNumber &&
+      !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phoneNumber.replace(/\s/g, ""))) {
       newErrors.phoneNumber = "Please enter a valid phone number";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -197,7 +199,6 @@ export default function AddLeadForm(): JSX.Element {
 
   // Handle select changes
   const handleSelectChange = (field: keyof FormData, value: string): void => {
-    console.log("Hello jiii", formData.category);
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -216,40 +217,27 @@ export default function AddLeadForm(): JSX.Element {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const maxSize = 5 * 1024 * 1024; // 5MB
-      const allowedTypes = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ];
 
       if (file.size > maxSize) {
         setErrors((prev) => ({
           ...prev,
-          document: "File size must be less than 5MB",
+          documents: "File size must be less than 5MB",
         }));
         return;
       }
 
-      if (!allowedTypes.includes(file.type)) {
-        setErrors((prev) => ({
-          ...prev,
-          document: "Please upload a PDF, DOC, or XLS file",
-        }));
-        return;
-      }
-
+      // Store the file with its description
       setFormData((prev) => ({
         ...prev,
-        document: file,
+        documents: file,
+        description: file.name // Add description as filename
       }));
 
       // Clear error
       if (errors.document) {
         setErrors((prev) => ({
           ...prev,
-          document: "",
+          documents: "",
         }));
       }
     }
@@ -259,7 +247,7 @@ export default function AddLeadForm(): JSX.Element {
   const removeFile = (): void => {
     setFormData((prev) => ({
       ...prev,
-      document: null,
+      documents: null,
     }));
 
     if (fileInputRef.current) {
@@ -269,87 +257,87 @@ export default function AddLeadForm(): JSX.Element {
 
   // Handle form submission
   const handleSubmit = async (): Promise<void> => {
-    console.log("Submitting lead data:", formData);
-
-    if (!validateForm()) {
-      // Focus on first error field
-      const firstErrorField = Object.keys(errors)[0];
-      const errorElement = document.querySelector(
-        `[name="${firstErrorField}"]`
-      ) as HTMLElement;
-      if (errorElement) {
-        errorElement.focus();
-      }
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-      const response = await axios.post("/lead/createlead", {
-        name: formData.name,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
-        category: formData.category, // This now contains the ObjectId
-        position: formData.position,
-        leadSource: formData.leadSource,
-        notes: formData.notes,
-        priority: formData.priority,
-        document: formData.document,
-        status: formData.status,
-      });
+      const formDataToSend = new FormData();
 
-      const data = response.data;
-      console.log("Lead submitted successfully:", data);
+      // Append all required fields
+      formDataToSend.append('name', formData.name);
+      if (formData.email) formDataToSend.append('email', formData.email);
+      if (formData.phoneNumber) formDataToSend.append('phoneNumber', formData.phoneNumber);
+      if (formData.category) formDataToSend.append('category', formData.category);
+      if (formData.position) formDataToSend.append('position', formData.position);
+      if (formData.leadSource) formDataToSend.append('leadSource', formData.leadSource);
+      if (formData.notes) formDataToSend.append('notes', formData.notes);
+      formDataToSend.append('status', formData.status);
+      formDataToSend.append('priority', formData.priority);
 
-      setSuccess(true);
-
-      // Add success animation
-      if (cardRef.current) {
-        cardRef.current.style.transform = "scale(1.02)";
-        cardRef.current.style.transition = "transform 0.2s ease-out";
-        setTimeout(() => {
-          if (cardRef.current) {
-            cardRef.current.style.transform = "scale(1)";
-          }
-        }, 200);
+      // Handle file upload - important changes here
+      if (formData.documents) {
+        formDataToSend.append('documents', formData.documents);
+        formDataToSend.append('description', formData.documents.name);
       }
 
-      // Reset form after success
-      setTimeout(() => {
-        setFormData({
-          name: "",
-          email: "",
-          phoneNumber: "",
-          category: "",
-          position: "",
-          leadSource: "",
-          notes: "",
-          priority: "medium",
-          document: null,
-          status: "new",
-        });
-        setSuccess(false);
-        setErrors({});
+      // Log the form data for debugging
+      console.log("Submitting form data:", {
+        ...Object.fromEntries(formDataToSend),
+        documents: formData.documents?.name
+      });
 
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
+      const response = await axios.post("/lead/createlead", formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
-      }, 3000);
-    } catch (error) {
-      console.error("Error submitting lead:", error);
-      setErrors((prev) => ({
-        ...prev,
-        submit: "Failed to save lead. Please try again.",
-      }));
+      });
 
-      // Error animation
-      if (cardRef.current) {
-        cardRef.current.style.animation = "shake 0.6s ease-in-out";
+      console.log("API Response:", response.data);
+
+      if (response.data.success) {
+        setSuccess(true);
+        // Reset form after success
         setTimeout(() => {
-          if (cardRef.current) {
-            cardRef.current.style.animation = "";
+          setFormData({
+            name: "",
+            email: "",
+            phoneNumber: "",
+            category: "",
+            position: "",
+            leadSource: "",
+            notes: "",
+            priority: "medium",
+            documents: null,
+            status: "new",
+          });
+          setSuccess(false);
+          setErrors({});
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
           }
-        }, 600);
+        }, 3000);
+      }
+
+    } catch (error: any) {
+      console.error("Error submitting form:", error);
+      console.error("Error response:", error.response?.data);
+      
+      // Handle specific error cases
+      if (error.response?.status === 409) {
+        setErrors(prev => ({
+          ...prev,
+          email: "A lead with this email already exists"
+        }));
+      } else if (error.response?.status === 400) {
+        setErrors(prev => ({
+          ...prev,
+          submit: error.response.data.error?.message || "Please check your input"
+        }));
+      } else {
+        setErrors(prev => ({
+          ...prev,
+          submit: error.response?.data?.error?.message || "Failed to save lead. Please try again."
+        }));
       }
     } finally {
       setIsLoading(false);
@@ -623,6 +611,9 @@ export default function AddLeadForm(): JSX.Element {
                               id="phoneNumber"
                               name="phoneNumber"
                               type="tel"
+                              inputMode="numeric"
+                              pattern="[0-9]{10}"
+                              maxLength={10}
                               placeholder="Phone number"
                               value={formData.phoneNumber}
                               onChange={handleInputChange}
@@ -848,12 +839,12 @@ export default function AddLeadForm(): JSX.Element {
                               />
                             </Label>
 
-                            {formData.document && (
+                            {formData.documents && (
                               <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-2">
                                 <div className="flex items-center gap-2">
                                   <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
                                   <p className="text-xs font-medium text-gray-900 truncate">
-                                    {formData.document.name}
+                                    {formData.documents.name}
                                   </p>
                                 </div>
                                 <Button

@@ -87,7 +87,7 @@ export default function UpdateCampaignPage() {
         try {
             const [campaignResponse, leadResponse, categoryResponse] = await Promise.all([
                 axios.get('/campaign/all'),
-                axios.get('/lead/getalllead'),
+                axios.get('/lead/leads'),
                 axios.get('/category')
             ]);
 
@@ -97,9 +97,9 @@ export default function UpdateCampaignPage() {
             }
 
             // Process Leads
-            const leadData = leadResponse.data?.data?.leads || [];
+            const leadData = leadResponse.data?.data || [];
             const mappedLeads = leadData.map((lead: any) => ({
-                id: lead.id,
+                id: lead._id,
                 name: lead.name,
                 position: lead.position || "",
                 category: lead.category?.title || "",

@@ -28,13 +28,13 @@ interface Worker {
 
 interface Conversation {
   id: string;
-  leadName: string;
-  workerName: string;
-  managerName: string;
-  category: string;
+  leadName: string | null;
+  workerName: string | null;
+  managerName: string | null;
+  category: string | null;
   categoryColor: string;
   followupDate: string;
-  conclusion: string;
+  conclusion: string | null;
   status: 'new' | 'in-progress' | 'follow-up' | 'closed';
   conversationEnd: 'positive' | 'negative' | 'not confirmed';
   createdAt: string;
@@ -115,16 +115,16 @@ const ConversationComponent = () => {
       console.log("Conversations response:", response.data);
       const mapped: Conversation[] = response.data.data.map((item) => ({
         id: item.conversation._id,
-        leadName: item.meta.leadName,
-        workerName: item.meta.workerName || 'N/A',
-        managerName: item.meta.managerName || 'N/A',
-        category: item.meta.categoryTitle,
+        leadName: item.meta.leadName || null,
+        workerName: item.meta.workerName || null,
+        managerName: item.meta.managerName || null,
+        category: item.meta.categoryTitle || null,
         categoryColor: item.meta.categoryColor,
         followupDate: item?.conversation?.date
           ? new Date(item.conversation.date).toISOString().split('T')[0]
           : "No follow-up date",
-        conclusion: item.conversation.conclusion,
-        status: item.meta.status,
+        conclusion: item.conversation.conclusion || null,
+        status: item.conversation.isProfitable !== null ? item.meta.status : 'follow-up',
         conversationEnd: item.conversation.isProfitable === true
           ? "positive"
           : item.conversation.isProfitable === false
@@ -156,14 +156,20 @@ const ConversationComponent = () => {
       result = result.filter(conv => conv.workerName === selectedWorker?.name);
     }
 
-    // Filter by search term
+    // Filter by search term with null checks
     if (searchTerm) {
-      result = result.filter(conv =>
-        conv.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        conv.workerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        conv.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        conv.conclusion.toLowerCase().includes(searchTerm.toLowerCase()) // Added conclusion to search
-      );
+      const search = searchTerm.toLowerCase();
+      result = result.filter(conv => {
+        const leadName = conv.leadName?.toLowerCase() || '';
+        const workerName = conv.workerName?.toLowerCase() || '';
+        const category = conv.category?.toLowerCase() || '';
+        const conclusion = conv.conclusion?.toLowerCase() || '';
+
+        return leadName.includes(search) ||
+          workerName.includes(search) ||
+          category.includes(search) ||
+          conclusion.includes(search);
+      });
     }
 
     return result;
@@ -396,7 +402,7 @@ const ConversationComponent = () => {
                   {/* Follow-up Date */}
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <Calendar className="h-4 w-4" />
-                    Follow-up: {conversation.followupDate!=="0"
+                    Follow-up: {conversation.followupDate !== "0"
                       ? conversation.followupDate
                       : 'Not scheduled'}
                     {/* Follow-up: {conversation.followupDate
@@ -410,10 +416,10 @@ const ConversationComponent = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-h-150 overflow-hidden text-wrap">
                       {expandedCards[conversation.id]
                         ? conversation.conclusion
-                        : truncateText(conversation.conclusion)
+                        : truncateText(conversation.conclusion !== null ? conversation.conclusion: 'No conclusion provided')
                       }
                     </p>
-                    {conversation.conclusion.length > 150 && (
+                    {conversation.conclusion!==null && conversation.conclusion.length > 150 && (
                       <Button
                         variant="link"
                         size="sm"
@@ -472,7 +478,7 @@ const ConversationComponent = () => {
                   <Label htmlFor="conclusion" className='mb-2'>Conclusion</Label>
                   <Textarea
                     id="conclusion"
-                    value={editingConversation.conclusion}
+                    value={editingConversation.conclusion!==null ? editingConversation.conclusion : ''}
                     onChange={(e) => setEditingConversation({
                       ...editingConversation,
                       conclusion: e.target.value
