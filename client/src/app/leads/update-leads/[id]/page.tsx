@@ -488,67 +488,69 @@ export default function UpdateLeadForm(): JSX.Element {
         className="min-h-screen bg-gradient-to-br py-6 sm:py-12 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col-reverse lg:flex-row justify-between">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Left Column - Info Cards */}
             <div className="lg:col-span-1 space-y-6">
-              {/* Quick Stats */}
-              <Card className="bg-white/80 dark:bg-[#232b3e] backdrop-blur-sm border-0 shadow-lg">
+              {/* Quick Stats Card */}
+              <Card className="bg-white/90 dark:bg-[#232b3e] backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
                     <Target className="w-5 h-5 text-blue-600" />
                     Lead Pipeline
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-300">New Leads</span>
-                    <Badge variant="secondary" className="dark:bg-blue-900 dark:text-blue-200">24</Badge>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">New Leads</span>
+                    <Badge variant="secondary" className="dark:bg-blue-900/50 dark:text-blue-200">24</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-300">In Progress</span>
-                    <Badge variant="secondary" className="dark:bg-blue-900 dark:text-blue-200">12</Badge>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">In Progress</span>
+                    <Badge variant="secondary" className="dark:bg-blue-900/50 dark:text-blue-200">12</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Converted</span>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                      8
-                    </Badge>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Converted</span>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">8</Badge>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Tips Card */}
-              <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-[#232b3e] dark:to-[#1a2236] border-0 shadow-lg">
+              <Card className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 dark:from-[#232b3e] dark:to-[#1a2236] border-0 shadow-lg">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
                     <Users className="w-5 h-5 text-indigo-600" />
                     Pro Tips
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-sm text-gray-700 dark:text-gray-300">
-                    <p className="mb-2">
-                      • <strong>High Priority:</strong> Follow up within 24 hours
-                    </p>
-                    <p className="mb-2">
-                      • <strong>Lead Source:</strong> Track where your best leads come from
-                    </p>
-                    <p className="mb-2">
-                      • <strong>Documentation:</strong> Upload relevant files for context
-                    </p>
-                    <p>
-                      • <strong>Notes:</strong> Add detailed information for better follow-up
-                    </p>
-                  </div>
+                <CardContent>
+                  <ul className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold min-w-[100px]">High Priority:</span>
+                      <span>Follow up within 24 hours</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold min-w-[100px]">Lead Source:</span>
+                      <span>Track where your best leads come from</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold min-w-[100px]">Documentation:</span>
+                      <span>Upload relevant files for context</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold min-w-[100px]">Notes:</span>
+                      <span>Add detailed information for better follow-up</span>
+                    </li>
+                  </ul>
                 </CardContent>
               </Card>
             </div>
 
             {/* Right Column - Form */}
-            <div className="lg:col-span-2 mb-6">
+            <div className="lg:col-span-3">
               <Card
                 ref={cardRef}
-                className={`bg-white/95 dark:bg-[#1a2236] backdrop-blur-sm border-0 pt-0 rounded-b-2xl shadow-2xl transition-all duration-300 ${success ? "ring-2 ring-green-500 ring-opacity-50" : ""
+                className={`bg-white/95 dark:bg-[#1a2236] backdrop-blur-sm border-0 shadow-2xl transition-all duration-300 ${success ? "ring-2 ring-green-500 ring-opacity-50" : ""
                   }`}
               >
                 <CardHeader className="border-b rounded-t-2xl border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-[#232b3e] pt-7">
