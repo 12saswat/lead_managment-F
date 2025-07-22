@@ -336,6 +336,9 @@ const CampaignManagement: React.FC = () => {
 const onEdit = (id: string) => {
     router.push(`/manager/campaign/update/${id}`);
   };
+  const onResend = (id: string) => {
+    router.push(`/manager/campaign/resend/${id}`);
+  };
   const handleSendCampaign = (id: string) => {
     const campaign = campaigns.find(c => c.id === id);
     if (campaign) {
@@ -458,6 +461,15 @@ const onEdit = (id: string) => {
             }`}>
             {campaign.status === 'sent' ? 'Sent' : 'Draft'}
           </span>
+          {campaign.status ==='sent'&& (
+            <button
+              onClick={() => onResend(campaign.id)} 
+              className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700 transition-colors flex items-center space-x-1"
+            >
+              <Send className="h-3 w-3" />
+              <span>Resend</span>
+            </button>
+          )}
           {campaign.status === 'draft' && (
             <button
               onClick={() => onSend(campaign.id)}
