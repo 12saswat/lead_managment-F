@@ -125,7 +125,7 @@ const Appsidebar = () => {
                 ) : user ? (
                   <>
                     <span className="font-semibold text-sm truncate">{user.name}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 capitalize">{user.role}</span>
                   </>
                 ) : (
                   <span className="text-sm">Not Logged In</span>

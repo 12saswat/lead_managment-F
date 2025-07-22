@@ -14,7 +14,7 @@ import React, { useEffect, useState } from "react";
 // Define the Lead interface to match the backend response structure
 interface Lead {
     id: string;
-    name: string; // Directly from backend
+    name: string;
     email: string | null;
     phoneNumber: string | null;
     category: {
@@ -22,8 +22,8 @@ interface Lead {
         title: string;
         color: string;
         description: string;
-    } | null; // Can be null, specify nested title
-    position: string; // Directly from backend
+    } | null;
+    position: string; 
     leadSource: string;
     notes: string;
     createdBy: {
@@ -35,7 +35,7 @@ interface Lead {
     followUpDates: string[];
     isDeleted: boolean;
     createdAt: string;
-    assignedTo: { // AssignedTo is an object
+    assignedTo: { 
         id: string;
         name: string;
     } | null; // Can be null
@@ -44,11 +44,11 @@ interface Lead {
 // Define the interface for data to be passed to AssignmentTable
 export interface AssignmentTableData {
     id: string;
-    name: string; // Lead name
-    position: string; // Lead position
-    category: string; // Category title
+    name: string; 
+    position: string;
+    category: string; 
     status: 'Active' | 'Completed' | 'Overdue'; // Mapped status
-    priority: 'High' | 'Medium' | 'Low'; // Mapped priority
+    priority: 'High' | 'Medium' | 'Low'; 
     assignedTo: string; // Assigned worker name
     dueDate: string;
 }
@@ -75,7 +75,7 @@ const fetchLeads = async (): Promise<Lead[]> => {
                 name: lead.name || "N/A",
                 email: lead.email || null,
                 phoneNumber: lead.phoneNumber || null,
-                category: lead.category || null, // Keep as object for now, map title later
+                category: lead.category || null, //Object
                 position: lead.position || "N/A",
                 leadSource: lead.leadSource || "N/A",
                 notes: lead.notes || "N/A",
@@ -85,7 +85,7 @@ const fetchLeads = async (): Promise<Lead[]> => {
                 followUpDates: lead.followUpDates || [],
                 isDeleted: lead.isDeleted || false,
                 createdAt: lead.createdAt || "",
-                assignedTo: lead.assignedTo || null, // Keep as object for now, map name later
+                assignedTo: lead.assignedTo || null, // Object
             }));
         console.log("Filtered assigned leads >>>", assignments);
         return assignments;
@@ -143,8 +143,8 @@ export default function ManagerAssignmentsPage() {
                 : "Low") as "High" | "Medium" | "Low",
         assignedTo: a.assignedTo?.name || "Unassigned", // Use assignedTo name, default if null
         dueDate: a.followUpDates && a.followUpDates.length > 0
-            ? new Date(a.followUpDates[0]).toLocaleDateString() // Format date for display
-            : new Date(a.createdAt).toLocaleDateString(), // Fallback to createdAt if no follow-up
+            ? new Date(a.followUpDates[0]).toLocaleDateString()
+            : new Date(a.createdAt).toLocaleDateString(), 
     }));
 
     return (

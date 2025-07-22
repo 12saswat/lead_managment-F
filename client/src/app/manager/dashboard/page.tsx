@@ -205,7 +205,7 @@ const ManagerDashboardPage = () => {
           </p>
         </div>
         <div className="flex items-center gap-4 mt-4 sm:mt-0">
-             <Button variant="outline" onClick={() => router.push("/manager/campaigns/new")}>
+             <Button variant="outline" onClick={() => router.push("/manager/campaign")}>
                 <Plus className="w-4 h-4 mr-2" /> New Campaign
              </Button>
              <Button onClick={() => router.push("/leads/upload-leads")}>

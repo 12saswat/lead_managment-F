@@ -74,15 +74,15 @@ export default function NewAssignmentDialog() {
       axios.get("/worker/get-all-workers").then((res) => {
         if (Array.isArray(res.data.data)) setWorkers(res.data.data);
       });
-      axios.get("/lead/getalllead").then((res) => {
-        const data = res.data?.data?.leads || [];
+      axios.get("/lead/leads").then((res) => {
+        const data = res.data?.data || [];
         const mappedLeads = data
           .filter(
             (lead: any) =>
               !lead.assignedTo || lead.assignedTo.name === "assigned"
           )
           .map((lead: any) => ({
-            id: lead.id,
+            id: lead._id,
             name: lead.name,
             position: lead.position || "",
             category: lead.category?.title || "",

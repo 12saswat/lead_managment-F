@@ -53,7 +53,7 @@ interface ApiResponse {
   };
   meta: {
     leadName: string;
-    followupDate: string;
+    followupDate: string[];
     status: 'new' | 'in-progress' | 'follow-up' | 'closed';
     workerName?: string;
     managerName?: string;
@@ -120,7 +120,9 @@ const ConversationComponent = () => {
         managerName: item.meta.managerName || 'N/A',
         category: item.meta.categoryTitle,
         categoryColor: item.meta.categoryColor,
-        followupDate: item.meta.followupDate,
+        followupDate: item?.conversation?.date
+          ? new Date(item.conversation.date).toISOString().split('T')[0]
+          : "No follow-up date",
         conclusion: item.conversation.conclusion,
         status: item.meta.status,
         conversationEnd: item.conversation.isProfitable === true
@@ -131,7 +133,7 @@ const ConversationComponent = () => {
         createdAt: item.conversation.date,
       }));
       setConversations(mapped);
-      // console.log("Conversations fetched:", mapped);
+      console.log("Conversations fetched:", mapped);
     } catch (error) {
       console.error('Error fetching conversations:', error);
     } finally {
@@ -191,16 +193,29 @@ const ConversationComponent = () => {
           conv.id === editingConversation.id ? editingConversation : conv
         )
       );
-      axios.put(`/conversation/update/${editingConversation.id}`, editingConversation)
+      const isProfitable = editingConversation.conversationEnd === 'positive'
+        ? true
+        : editingConversation.conversationEnd === 'negative'
+          ? false
+          : null;
+      // Prepare the update payload
+      const updatePayload = {
+        followupDate: editingConversation.followupDate,
+        conclusion: editingConversation.conclusion,
+        isProfitable
+      };
+      console.log("Updated content: ", updatePayload)
+      axios.put(`/conversation/update/${editingConversation.id}`, updatePayload)
         .then(() => {
           setEditingConversation(null);
           setUpdateDialogOpen(false);
-          console.log("Updated content: ", editingConversation)
           toast.success("Conversation updated successfully");
+          fetchConversations();
         })
         .catch(err => {
           console.error("Error updating conversation:", err);
           toast.error("Failed to update conversation");
+          fetchConversations();
         });
     }
   };
@@ -381,7 +396,12 @@ const ConversationComponent = () => {
                   {/* Follow-up Date */}
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <Calendar className="h-4 w-4" />
-                    Follow-up: {new Date(conversation.followupDate).toLocaleDateString()}
+                    Follow-up: {conversation.followupDate!=="0"
+                      ? conversation.followupDate
+                      : 'Not scheduled'}
+                    {/* Follow-up: {conversation.followupDate
+                      ? new Date(conversation.followupDate).toLocaleDateString()
+                      : 'Not scheduled'} */}
                   </div>
 
                   {/* Conclusion */}
@@ -458,7 +478,7 @@ const ConversationComponent = () => {
                       conclusion: e.target.value
                     })}
                     rows={4}
-                    className='min-h-50 dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
+                    className='h-45 dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
                   />
                 </div>
 
