@@ -30,6 +30,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { format } from "date-fns";
+import { loadComponents } from "next/dist/server/load-components";
 
 interface Category {
   _id: string;
@@ -57,7 +58,7 @@ export default function NewAssignmentDialog() {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({
-    priority: "medium",
+    priority: "",
     worker: "",
     dueDate: "",
     notes: "",
@@ -79,7 +80,7 @@ export default function NewAssignmentDialog() {
         const mappedLeads = data
           .filter(
             (lead: any) =>
-              !lead.assignedTo || lead.assignedTo.name === "assigned"
+              !lead.assignedTo
           )
           .map((lead: any) => ({
             id: lead._id,
@@ -151,8 +152,7 @@ export default function NewAssignmentDialog() {
     //   toast.error("Please select worker, category, and at least one lead.");
     //   return;
     // }
-    console.log("bhai ya assignment log ha bro");
-    console.log("bhai ya form ha >>",selectedLeadIds,form);
+    console.log("bhai ya form ha >>", selectedLeadIds, form);
     try {
       await axios.post("lead/assign", {
         leadIds: selectedLeadIds,
@@ -161,8 +161,8 @@ export default function NewAssignmentDialog() {
         dueDate: form.dueDate,
         notes: form.notes,
       });
-      
-      
+
+
       toast.success("Leads assigned successfully!");
       setOpen(false);
       setForm({
@@ -174,7 +174,7 @@ export default function NewAssignmentDialog() {
       setSelectedLeadIds([]);
     } catch (err: any) {
       console.log("error:>>", err?.response?.data.error.message);
-      
+
       toast.error(err?.response?.data.error.message || "Failed to assign leads.");
     }
   };
@@ -197,9 +197,8 @@ export default function NewAssignmentDialog() {
         <div className="flex flex-col md:flex-row h-[70vh]">
           {/* Left Panel - Category Filter & Leads Selection */}
           <div
-            className={`${
-              mobileView === "leads" ? "block" : "hidden"
-            } md:block border-r border-gray-200 dark:border-gray-700 w-full md:w-2/3 p-4 overflow-auto`}
+            className={`${mobileView === "leads" ? "block" : "hidden"
+              } md:block border-r border-gray-200 dark:border-gray-700 w-full md:w-2/3 p-4 overflow-auto`}
           >
             {/* Category Filter Dropdown */}
             <div className="mb-4">
@@ -224,8 +223,8 @@ export default function NewAssignmentDialog() {
               </Select>
             </div>
 
-            <div className="sticky top-0 bg-white-500 dark:bg-gray-900 z-10 pb-3">
-              <div className="flex justify-between items-center mb-3">
+            <div className="sticky top-0 bg-white mt-0 dark:bg-gray-900 z-10 pb-3">
+              <div className="flex justify-between items-center py-2 mb-3">
                 <h3 className="font-medium text-gray-800 dark:text-white">
                   Unassigned Leads
                 </h3>
@@ -304,13 +303,13 @@ export default function NewAssignmentDialog() {
                             {lead.position || "No position specified"}
                           </p>
                           <div className="flex items-center space-x-2 mt-1">
-                          <span
-                            className="text-xs p-1 rounded-[50%] w-2 h-2 truncate text-gray-800 dark:text-white"
-                            style={{ backgroundColor: lead.color || "#222" }}
+                            <span
+                              className="text-xs p-1 rounded-[50%] w-2 h-2 truncate text-gray-800 dark:text-white"
+                              style={{ backgroundColor: lead.color || "#222" }}
                             >
-                          </span>
-                          <p className="text-sm">{lead.category || "No category specified"}</p>
-                            </div>
+                            </span>
+                            <p className="text-sm">{lead.category || "No category specified"}</p>
+                          </div>
                         </div>
                       </label>
                     </li>
@@ -324,18 +323,16 @@ export default function NewAssignmentDialog() {
           <div className="md:hidden flex border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setMobileView("leads")}
-              className={`flex-1 py-3 flex items-center justify-center space-x-2 ${
-                mobileView === "leads" ? "bg-gray-100 dark:bg-gray-800" : ""
-              }`}
+              className={`flex-1 py-3 flex items-center justify-center space-x-2 ${mobileView === "leads" ? "bg-gray-100 dark:bg-gray-800" : ""
+                }`}
             >
               <PanelLeft className="h-4 w-4" />
               <span>Leads</span>
             </button>
             <button
               onClick={() => setMobileView("form")}
-              className={`flex-1 py-3 flex items-center justify-center space-x-2 ${
-                mobileView === "form" ? "bg-gray-100 dark:bg-gray-800" : ""
-              }`}
+              className={`flex-1 py-3 flex items-center justify-center space-x-2 ${mobileView === "form" ? "bg-gray-100 dark:bg-gray-800" : ""
+                }`}
             >
               <PanelRight className="h-4 w-4" />
               <span>Assignment</span>
@@ -344,9 +341,8 @@ export default function NewAssignmentDialog() {
 
           {/* Right Panel - Assignment Form */}
           <div
-            className={`${
-              mobileView === "form" ? "block" : "hidden"
-            } md:block w-full md:w-2/3 p-6 overflow-auto`}
+            className={`${mobileView === "form" ? "block" : "hidden"
+              } md:block w-full md:w-2/3 p-6 overflow-auto`}
           >
             <form className="space-y-5" onSubmit={handleSubmit}>
               {/* Selected Leads Summary */}
@@ -386,7 +382,7 @@ export default function NewAssignmentDialog() {
                   htmlFor="assignTo"
                   className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
                 >
-                  Assign To
+                  Assign To<span className="text-red-500"> *</span>
                 </label>
                 <Select value={form.worker} onValueChange={handleWorker}>
                   <SelectTrigger className="dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600">
@@ -409,11 +405,11 @@ export default function NewAssignmentDialog() {
                     htmlFor="priority"
                     className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
                   >
-                    Priority
+                    Priority<span className="text-red-500"> *</span>
                   </label>
-                  <Select value={form.priority} onValueChange={handlePriority}>
+                  <Select value={form.priority || ""} onValueChange={handlePriority}>
                     <SelectTrigger className="dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600">
-                      <SelectValue placeholder="Select Priority" />
+                      <SelectValue placeholder="Priority" />
                     </SelectTrigger>
                     <SelectContent className="dark:bg-gray-800 dark:text-white">
                       <SelectItem value="High">High</SelectItem>
@@ -430,34 +426,34 @@ export default function NewAssignmentDialog() {
                     Due Date
                   </label>
                   <Popover>
-  <PopoverTrigger asChild>
-    <Button
-      variant="outline"
-      className={`w-full justify-start text-left font-normal ${!form.dueDate ? "text-muted-foreground" : ""}`}
-    >
-      {form.dueDate
-        ? format(new Date(form.dueDate), "PPP")
-        : "Pick a due date"}
-    </Button>
-  </PopoverTrigger>
-  <PopoverContent className="w-auto p-0">
-    <Calendar
-      mode="single"
-      selected={form.dueDate ? new Date(form.dueDate) : undefined}
-      onSelect={(date) => {
-        if (date) {
-          handleChange({
-            target: {
-              name: "dueDate",
-              value: format(date, "yyyy-MM-dd"),
-            },
-          } as React.ChangeEvent<HTMLInputElement>);
-        }
-      }}
-      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-    />
-  </PopoverContent>
-</Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start text-left font-normal ${!form.dueDate ? "text-muted-foreground" : ""}`}
+                      >
+                        {form.dueDate
+                          ? format(new Date(form.dueDate), "PPP")
+                          : "Pick a due date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={form.dueDate ? new Date(form.dueDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            handleChange({
+                              target: {
+                                name: "dueDate",
+                                value: format(date, "yyyy-MM-dd"),
+                              },
+                            } as React.ChangeEvent<HTMLInputElement>);
+                          }
+                        }}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 

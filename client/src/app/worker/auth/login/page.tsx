@@ -53,13 +53,13 @@ export default function WorkerLogin() {
     try {
       await Axios.post("/worker/login", formData);
 
-      toast.success("Login successful!");
+      toast.success("Login successful! Redirecting to Dashboard...");
       setTimeout(() => {
         // router.push("/worker/dashboard");
         window.location.replace("/worker/dashboard");
       }, 1500);
     } catch (err: any) {
-      const msg = err.response?.data?.message || "Login failed";
+      const msg = err.response.data.error.message || "Login failed";
       toast.error(msg);
     } finally {
       setIsLoading(false);
