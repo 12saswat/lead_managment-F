@@ -22,7 +22,7 @@ import {
 // Define the type for the user data
 interface User {
   name: string;
-  role: string;
+  role:string;
 }
 
 // Menu items.
@@ -65,11 +65,21 @@ const Appsidebar = () => {
     fetchCurrentUser();
   }, [router]); // Added router to dependency array as it's used inside the effect
 
-  const handleLogout = () => {
-    // Clear token and other relevant cookies
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "002=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    router.push("/manager/auth/login");
+  // --- MODIFIED FUNCTION ---
+  const handleLogout = async () => {
+    try {
+      // Call the backend logout endpoint
+      await axios.post('/user/logout');
+    } catch (error) {
+      console.error("Server-side logout failed, proceeding with client-side cleanup:", error);
+    } finally {
+      // Clear token cookies from the client
+      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "002=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      
+      // Redirect to the login page
+      router.push("/manager/auth/login");
+    }
   };
   
   return (
