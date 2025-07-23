@@ -23,7 +23,7 @@ interface Lead {
         color: string;
         description: string;
     } | null;
-    position: string; 
+    position: string;
     leadSource: string;
     notes: string;
     createdBy: {
@@ -35,10 +35,13 @@ interface Lead {
     followUpDates: string[];
     isDeleted: boolean;
     createdAt: string;
-    assignedTo: { 
+    assignedTo: {
         id: string;
         name: string;
-    } | null; // Can be null
+    } | null;
+    documents: string[]; // Array of document URLs
+    conversations: string[]; // Array of conversation IDs
+    lastContact: string; // Last contact date
 }
 
 // Define the interface for data to be passed to AssignmentTable
@@ -56,37 +59,53 @@ export interface AssignmentTableData {
 // API function to fetch leads
 const fetchLeads = async (): Promise<Lead[]> => {
     try {
-        const res = await axios.get("/lead/getalllead");
-        const { data } = res.data; // Destructure data from res.data
-
-        if (!data || !data.leads || !data.pagination) {
+        const res = await axios.get("/lead/leads");
+        console.log("Response from server:", res.data);
+        const { data } = res.data;
+        if (!data) {
             throw new Error("Invalid response structure from server.");
         }
-        console.log("Assigned Leads fetched>>>", data.leads);
+        console.log("Assigned Leads fetched>>>", data);
 
         const validStatuses = ["new", "in-progress", "follow-up", "closed"];
         const validPriorities = ["high", "medium", "low"];
 
         // Filter and map the leads to the Lead interface
-        const assignments: Lead[] = data.leads
-            .filter((lead: any) => lead.assignedTo && validStatuses.includes(lead.status) && validPriorities.includes(lead.priority))
+        const assignments: Lead[] = data
+            .filter((lead: any) =>
+                lead.assignedTo &&
+                validStatuses.includes(lead.status) &&
+                validPriorities.includes(lead.priority)
+            )
             .map((lead: any) => ({
-                id: lead.id,
+                id: lead._id, // Changed from id to _id
                 name: lead.name || "N/A",
                 email: lead.email || null,
-                phoneNumber: lead.phoneNumber || null,
-                category: lead.category || null, //Object
+                phoneNumber: lead.phoneNumber ? String(lead.phoneNumber) : null, // Convert to string
+                category: lead.category ? {
+                    id: lead.category._id || "",
+                    title: lead.category.title || "Uncategorized",
+                    color: lead.category.color || "#808080",
+                    description: lead.category.description || ""
+                } : null,
                 position: lead.position || "N/A",
                 leadSource: lead.leadSource || "N/A",
                 notes: lead.notes || "N/A",
-                createdBy: lead.createdBy || { id: "", name: "Unknown" },
+                createdBy: {
+                    id: lead.createdBy || "",
+                    name: "Unknown" // You might want to fetch user details separately
+                },
                 status: lead.status,
                 priority: lead.priority,
                 followUpDates: lead.followUpDates || [],
                 isDeleted: lead.isDeleted || false,
                 createdAt: lead.createdAt || "",
-                assignedTo: lead.assignedTo || null, // Object
+                assignedTo: lead.assignedTo ? {
+                    id: lead.assignedTo,
+                    name: "Assigned"
+                } : null,
             }));
+
         console.log("Filtered assigned leads >>>", assignments);
         return assignments;
     }
@@ -153,8 +172,7 @@ export default function ManagerAssignmentsPage() {
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
                     Lead Assignments
                 </h1>
-                
-               <NewAssignmentDialog />
+                <NewAssignmentDialog />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">

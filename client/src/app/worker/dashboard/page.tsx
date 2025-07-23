@@ -14,9 +14,12 @@ import {
   AlertCircle,
   List,
   BarChart as BarChartIcon,
+  Calendar as CalendarIcon,
 } from "lucide-react";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { DateRange } from "react-day-picker";
+import { format, addDays, differenceInDays, isAfter } from "date-fns";
 import {
   Tooltip,
   ResponsiveContainer,
@@ -33,251 +36,391 @@ import {
 import axios from "@/lib/Axios"; // Assuming you have a configured axios instance
 import { Button } from "@/components/ui/button"; // Assuming a shadcn/ui Button component
 import { Calendar } from "@/components/ui/calendar"; // Assuming a shadcn/ui Calendar component
+import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
-// --- MOCK DATA (to be replaced by API calls) ---
-const kpiData = {
-  totalAssignedLeads: { value: 45, change: 5 },
-  pendingFollowUp: { value: 12, change: -3 },
-  leadsFollowUpToday: { value: 8, change: 2 },
-  leadsMissingFollowUp: { value: 3, change: 1 },
+// --- TYPE DEFINITION for API response ---
+interface WorkerDashboardData {
+  totalAssignedLeads: number;
+  pendingFollowUps: number;
+  followUpsToday: {
+    count: number;
+    data: { _id: string; name: string; company?: string }[];
+  };
+  missingFollowUps: number;
+  performanceByCategory: {
+    _id: string;
+    totalLeads: number;
+    profitable: number;
+    nonProfitable: number;
+    category: string;
+  }[];
+  upcomingSchedule: {
+    today: string[];
+    tomorrow: string[];
+  };
+  overdueFollowUps: {
+    _id: string;
+    name: string;
+    position?: string;
+    followUpDates: string[];
+  }[];
+  recentAssignments: {
+    _id: string;
+    name: string;
+    position?: string;
+    createdAt: string;
+    status: string;
+  }[];
+}
+
+// --- SKELETON COMPONENT ---
+const WorkerDashboardSkeleton = () => {
+    const ListCardSkeleton = ({ itemCount = 3 }) => (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-4 w-16" />
+            </div>
+            <div className="space-y-6">
+                {[...Array(itemCount)].map((_, i) => (
+                     <div key={i} className="flex items-center space-x-4">
+                        <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                        </div>
+                        <Skeleton className="h-6 w-12" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+    
+    return (
+        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+                <div>
+                    <Skeleton className="h-9 w-48 mb-2" />
+                    <Skeleton className="h-5 w-72" />
+                </div>
+                <div className="flex items-center gap-4 mt-4 sm:mt-0">
+                    <Skeleton className="h-10 w-[240px] sm:w-[300px]" />
+                    <Skeleton className="h-10 w-28" />
+                </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700">
+                        <Skeleton className="h-6 w-6 rounded-md mb-4" />
+                        <Skeleton className="h-8 w-16" />
+                        <Skeleton className="h-4 w-32 mt-2" />
+                    </div>
+                ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border"><Skeleton className="h-64 w-full" /></div>
+                    <ListCardSkeleton itemCount={3} />
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border"><Skeleton className="h-48 w-full" /></div>
+                </div>
+                <div className="space-y-8">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border"><Skeleton className="h-72 w-full" /></div>
+                    <ListCardSkeleton itemCount={2} />
+                </div>
+            </div>
+        </div>
+    );
 };
 
-const categoryProfitableData = [
-  { name: "Sales", profitable: 20, nonProfitable: 10 },
-  { name: "Marketing", profitable: 15, nonProfitable: 8 },
-  { name: "Healthcare", profitable: 12, nonProfitable: 5 },
-  { name: "Services", profitable: 10, nonProfitable: 7 },
-];
-
-const PIE_COLORS = ["#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe"];
-
-const todayFollowUpList = [
-  { id: "f1", name: "John Smith", company: "Tech Corp", time: "10:00 AM", status: "Pending" },
-  { id: "f2", name: "Sarah Wilson", company: "Design Studio", time: "2:00 PM", status: "Scheduled" },
-  { id: "f3", name: "Mike Brown", company: "Retail Chain", time: "4:00 PM", status: "Pending" },
-];
-
-const recentAssignments = [
-  { id: "a1", name: "Alice Johnson", company: "InnoTech", assignedDate: "2025-07-20", status: "New" },
-  { id: "a2", name: "Bob Lee", company: "MarketPros", assignedDate: "2025-07-19", status: "In Progress" },
-  { id: "a3", name: "Carol Davis", company: "HealthPlus", assignedDate: "2025-07-18", status: "New" },
-];
-
-const upcomingFollowUps = [
-  { date: new Date("2025-07-22"), events: [{ name: "Tech Corp Follow-up", time: "11:00 AM" }] },
-  { date: new Date("2025-07-23"), events: [{ name: "Design Studio Call", time: "3:00 PM" }, { name: "Retail Meeting", time: "5:00 PM" }] },
-];
-
-const overdueFollowUps = [
-  { id: "o1", name: "David Evans", company: "FinServe", dueDate: "2025-07-19" },
-  { id: "o2", name: "Eva Foster", company: "AdAgency", dueDate: "2025-07-18" },
-];
-
 // --- Helper Components ---
-const KpiCard = ({ title, value, change, icon, unit = "" }: { title: string, value: number, change: number, icon: React.ReactNode, unit?: string }) => {
-  const isPositive = change >= 0;
-  return (
-    <div className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1">
-      <div className="flex justify-between items-center">
-        <div className="text-gray-400">{icon}</div>
-        <div className={`flex items-center text-sm font-semibold ${isPositive ? "text-green-500" : "text-red-500"}`}>
-          {isPositive ? "▲" : "▼"} {Math.abs(change)}%
+const KpiCard = ({ title, value, icon }: { title: string, value: number, icon: React.ReactNode }) => {
+    return (
+        <div className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1">
+            <div className="flex justify-between items-center">
+                <div className="text-gray-400">{icon}</div>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mt-2">{value}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
         </div>
-      </div>
-      <h2 className="text-3xl font-bold text-gray-800 dark:text-white mt-2">{value}{unit}</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-    </div>
-  );
+    );
 };
 
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case "Pending": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-    case "Scheduled": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-    case "New": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-    case "In Progress": return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-    default: return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
-  }
+    if (!status) return "bg-gray-100 text-gray-800";
+    const lowerCaseStatus = status.toLowerCase();
+    switch (lowerCaseStatus) {
+        case "pending": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+        case "scheduled": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        case "new": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        case "in-progress": return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+        case "follow-up": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+        case "closed": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        default: return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
+    }
 };
 
-const formatDateRelative = (dateString: string) => {
-  const date = new Date(dateString);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return "Today";
-  }
-  if (date.toDateString() === tomorrow.toDateString()) {
-    return "Tomorrow";
-  }
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    return format(new Date(dateString), "MMM dd, yyyy");
 };
 
+// --- MAIN COMPONENT ---
 const WorkerDashboardPage = () => {
-  const router = useRouter();
+    const router = useRouter();
+    const [dashboardData, setDashboardData] = useState<WorkerDashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [date, setDate] = useState<DateRange | undefined>({ from: undefined, to: new Date() });
 
-  // In a real app, you would fetch data here using useEffect
-  // For example:
-  // useEffect(() => {
-  //   axios.get('/api/worker/dashboard/kpis').then(res => setKpiData(res.data));
-  //   // ... fetch other data points
-  // }, []);
+    const handleDateSelect = (range: DateRange | undefined) => {
+        const MAX_RANGE_DAYS = 60;
+        if (!range) {
+            setDate(range);
+            return;
+        }
+        let { from, to } = range;
+        if (from && to) {
+            if (isAfter(from, to)) [from, to] = [to, from];
+            if (differenceInDays(to, from) >= MAX_RANGE_DAYS) {
+                to = addDays(from, MAX_RANGE_DAYS - 1);
+            }
+        }
+        setDate({ from, to });
+    };
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Worker Dashboard
-          </h1>
-          <p className="text-md text-gray-500 mt-1 dark:text-gray-400">
-            Welcome back, manage your assigned leads and follow-ups.
-          </p>
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const params = {
+                    startDate: date?.from ? format(date.from, "yyyy/MM/dd") : null,
+                    endDate: date?.to ? format(date.to, "yyyy/MM/dd") : format(new Date(), "yyyy/MM/dd"),
+                };
+                const response = await axios.post('/worker/dashboard', params);
+                if (response.data.success) {
+                    setDashboardData(response.data);
+                } else {
+                    setDashboardData(null);
+                }
+            } catch (error) {
+                setDashboardData(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [date]);
+
+    const transformedData = React.useMemo(() => {
+        if (!dashboardData) return null;
+        return {
+            kpiData: {
+                totalAssignedLeads: dashboardData.totalAssignedLeads ?? 0,
+                pendingFollowUp: dashboardData.pendingFollowUps ?? 0,
+                leadsFollowUpToday: dashboardData.followUpsToday?.count ?? 0,
+                leadsMissingFollowUp: dashboardData.missingFollowUps ?? 0,
+            },
+            categoryProfitableData: dashboardData.performanceByCategory.map(item => ({
+                name: item.category,
+                profitable: item.profitable,
+                nonProfitable: item.nonProfitable,
+            })),
+            todayFollowUpList: dashboardData.followUpsToday.data.map(item => ({
+                id: item._id,
+                name: item.name,
+                company: item.company || "N/A",
+                time: "Today",
+                status: "Pending",
+            })),
+            recentAssignments: dashboardData.recentAssignments.map(item => ({
+                id: item._id,
+                name: item.name,
+                company: item.position || "N/A",
+                assignedDate: item.createdAt,
+                status: item.status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            })),
+            upcomingFollowUps: [
+                ...(dashboardData.upcomingSchedule.today.length > 0 ? [{
+                    date: new Date(),
+                    events: dashboardData.upcomingSchedule.today.map(name => ({ name: `${name} Follow-up` }))
+                }] : []),
+                ...(dashboardData.upcomingSchedule.tomorrow.length > 0 ? [{
+                    date: addDays(new Date(), 1),
+                    events: dashboardData.upcomingSchedule.tomorrow.map(name => ({ name: `${name} Follow-up` }))
+                }] : [])
+            ],
+            overdueFollowUps: dashboardData.overdueFollowUps.map(item => ({
+                id: item._id,
+                name: item.name,
+                company: item.position || "N/A",
+                dueDate: item.followUpDates?.[0] || "",
+            })),
+        };
+    }, [dashboardData]);
+
+    if (loading) {
+        return <WorkerDashboardSkeleton />;
+    }
+
+    if (!transformedData) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+                <div className="text-center">
+                    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Could not load dashboard data.</h2>
+                    <p className="text-gray-500 mt-2">Please try selecting a different date range or refreshing the page.</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Worker Dashboard</h1>
+                    <p className="text-md text-gray-500 mt-1 dark:text-gray-400">
+                        Welcome back, manage your assigned leads and follow-ups.
+                    </p>
+                </div>
+                <div className="flex items-center gap-4 mt-4 sm:mt-0">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button id="date" variant={"outline"} className={cn("w-[240px] sm:w-[300px] justify-start text-left font-normal", !date && "text-muted-foreground")}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {date?.from ? (date.to ? (<>{format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}</>) : format(date.from, "LLL dd, y")) : <span>All Time</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar initialFocus mode="range" defaultMonth={date?.from} selected={date} onSelect={handleDateSelect} numberOfMonths={2} disabled={{ after: new Date() }} />
+                        </PopoverContent>
+                    </Popover>
+                    <Button onClick={() => router.push("/leads/upload-leads")}>
+                        <Plus className="w-4 h-4 mr-2" /> Add Lead
+                    </Button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <KpiCard title="Total Assigned Leads" value={transformedData.kpiData.totalAssignedLeads} icon={<Users className="w-6 h-6" />} />
+                <KpiCard title="Pending Follow-Ups" value={transformedData.kpiData.pendingFollowUp} icon={<Activity className="w-6 h-6" />} />
+                <KpiCard title="Follow-Ups Today" value={transformedData.kpiData.leadsFollowUpToday} icon={<CalendarClock className="w-6 h-6" />} />
+                <KpiCard title="Leads with Missing Follow-Up" value={transformedData.kpiData.leadsMissingFollowUp} icon={<AlertCircle className="w-6 h-6" />} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Category Wise Profitable vs Non-Profitable Leads</h3>
+                        <div className="h-64 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={transformedData.categoryProfitableData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="profitable" fill="#82ca9d" name="Profitable" />
+                                    <Bar dataKey="nonProfitable" fill="#ff7300" name="Non-Profitable" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Today's Follow-Up List</h3>
+                            <button onClick={() => router.push('/worker/follow-ups')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
+                        </div>
+                        <ul className="space-y-4">
+                            {transformedData.todayFollowUpList.length > 0 ? transformedData.todayFollowUpList.map(item => (
+                                <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-gray-900 dark:text-white">{item.name}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{item.company}</p>
+                                    </div>
+                                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>{item.status}</span>
+                                </li>
+                            )) : <p className="text-center text-gray-500 py-4">No follow-ups scheduled for today.</p>}
+                        </ul>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Recent Assignments</h3>
+                            <button onClick={() => router.push('/worker/assignments')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr>
+                                        <th className="p-3">Name</th>
+                                        <th className="p-3">Company</th>
+                                        <th className="p-3">Assigned Date</th>
+                                        <th className="p-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {transformedData.recentAssignments.length > 0 ? transformedData.recentAssignments.map(item => (
+                                        <tr key={item.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                            <td className="p-3 font-medium text-gray-900 dark:text-white">{item.name}</td>
+                                            <td className="p-3 text-gray-600 dark:text-gray-300">{item.company}</td>
+                                            <td className="p-3 text-gray-600 dark:text-gray-300">{formatDate(item.assignedDate)}</td>
+                                            <td className="p-3">
+                                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>{item.status}</span>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={4} className="text-center text-gray-500 py-4">No recent assignments.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-8">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Upcoming Follow-Ups</h3>
+                        <Calendar
+                            mode="multiple"
+                            selected={transformedData.upcomingFollowUps.map(up => up.date)}
+                            className="rounded-md border"
+                            classNames={{ day_selected: "bg-indigo-500 text-white hover:bg-indigo-600 focus:bg-indigo-600", day_today: "bg-indigo-100 text-indigo-800" }}
+                        />
+                        <ul className="mt-4 space-y-2">
+                            {transformedData.upcomingFollowUps.length > 0 ? transformedData.upcomingFollowUps.map((up, index) => (
+                                <li key={index} className="text-sm text-gray-600 dark:text-gray-300">
+                                    <strong>{format(up.date, "MMMM dd")}:</strong> {up.events.map(e => e.name).join(', ')}
+                                </li>
+                            )) : <p className="text-center text-gray-500 pt-4">No upcoming follow-ups found.</p>}
+                        </ul>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Overdue Follow-Ups</h3>
+                            <button onClick={() => router.push('/worker/overdue')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
+                        </div>
+                        <ul className="space-y-4">
+                            {transformedData.overdueFollowUps.length > 0 ? transformedData.overdueFollowUps.map(item => (
+                                <li key={item.id} className="flex items-center space-x-4">
+                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                                        <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-medium text-gray-800 dark:text-white">{item.name}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{item.company} - Due: {formatDate(item.dueDate)}</p>
+                                    </div>
+                                </li>
+                            )) : <p className="text-center text-gray-500 py-4">No overdue follow-ups. Great job!</p>}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="flex items-center gap-4 mt-4 sm:mt-0">
-          <Button onClick={() => router.push("/leads/upload-leads")}>
-            <Plus className="w-4 h-4 mr-2" /> Add Lead
-          </Button>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <KpiCard title="Total Assigned Leads" value={kpiData.totalAssignedLeads.value} change={kpiData.totalAssignedLeads.change} icon={<Users className="w-6 h-6" />} />
-        <KpiCard title="Pending Follow-Ups" value={kpiData.pendingFollowUp.value} change={kpiData.pendingFollowUp.change} icon={<Activity className="w-6 h-6" />} />
-        <KpiCard title="Follow-Ups Today" value={kpiData.leadsFollowUpToday.value} change={kpiData.leadsFollowUpToday.change} icon={<CalendarClock className="w-6 h-6" />} />
-        <KpiCard title="Leads with Missing Follow-Up" value={kpiData.leadsMissingFollowUp.value} change={kpiData.leadsMissingFollowUp.change} icon={<AlertCircle className="w-6 h-6" />} />
-      </div>
-
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Category Wise Profitable and Non-Profitable Leads Graph */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Category Wise Profitable vs Non-Profitable Leads</h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryProfitableData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="profitable" fill="#82ca9d" name="Profitable" />
-                  <Bar dataKey="nonProfitable" fill="#ff7300" name="Non-Profitable" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Today Follow-Up List */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Today's Follow-Up List</h3>
-              <button onClick={() => router.push('/worker/follow-ups')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
-            </div>
-            <ul className="space-y-4">
-              {todayFollowUpList.map(item => (
-                <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900 dark:text-white">{item.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{item.company} - {item.time}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>
-                    {item.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Recent Assignment Table */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Recent Assignments</h3>
-              <button onClick={() => router.push('/worker/assignments')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                  <tr>
-                    <th className="p-3">Name</th>
-                    <th className="p-3">Company</th>
-                    <th className="p-3">Assigned Date</th>
-                    <th className="p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentAssignments.map(item => (
-                    <tr key={item.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <td className="p-3 font-medium text-gray-900 dark:text-white">{item.name}</td>
-                      <td className="p-3 text-gray-600 dark:text-gray-300">{item.company}</td>
-                      <td className="p-3 text-gray-600 dark:text-gray-300">{formatDateRelative(item.assignedDate)}</td>
-                      <td className="p-3">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-8">
-          {/* Calendar Style Upcoming Follow-Ups */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Upcoming Follow-Ups</h3>
-            <Calendar
-              mode="single"
-              className="rounded-md border"
-              modifiers={{
-                booked: upcomingFollowUps.map(up => up.date),
-              }}
-              modifiersStyles={{
-                booked: { color: 'white', backgroundColor: '#6366f1' },
-              }}
-            />
-            <ul className="mt-4 space-y-2">
-              {upcomingFollowUps.map((up, index) => (
-                <li key={index} className="text-sm text-gray-600 dark:text-gray-300">
-                  <strong>{formatDateRelative(up.date.toISOString())}:</strong> {up.events.map(e => `${e.name} at ${e.time}`).join(', ')}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Overdue Follow-Ups */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Overdue Follow-Ups</h3>
-              <button onClick={() => router.push('/worker/overdue')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
-            </div>
-            <ul className="space-y-4">
-              {overdueFollowUps.map(item => (
-                <li key={item.id} className="flex items-center space-x-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-800 dark:text-white">{item.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{item.company} - Due: {formatDateRelative(item.dueDate)}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default WorkerDashboardPage;
