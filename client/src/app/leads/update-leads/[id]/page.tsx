@@ -267,26 +267,11 @@ export default function UpdateLeadForm(): JSX.Element {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const maxSize = 5 * 1024 * 1024; // 5MB
-      const allowedTypes = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ];
 
       if (file.size > maxSize) {
         setErrors((prev) => ({
           ...prev,
           documents: "File size must be less than 5MB",
-        }));
-        return;
-      }
-
-      if (!allowedTypes.includes(file.type)) {
-        setErrors((prev) => ({
-          ...prev,
-          documents: "Please upload a PDF, DOC, or XLS file",
         }));
         return;
       }
@@ -359,6 +344,7 @@ export default function UpdateLeadForm(): JSX.Element {
       if (formData.documents) {
         submitFormData.append("documents", formData.documents);
       }
+      console.log("Form Data Entries:", Array.from(submitFormData.entries()));
 
       // Make API call
       const response = await Axios.put(
@@ -386,10 +372,10 @@ export default function UpdateLeadForm(): JSX.Element {
         }
 
         // Reset success state after 3 seconds
-        setTimeout(() => {
-          setSuccess(false);
-          window.location.replace("/leads/all-leads");
-        }, 3000);
+        // setTimeout(() => {
+        //   setSuccess(false);
+        //   window.location.replace("/leads/all-leads");
+        // }, 3000);
       } else {
         setErrors({ submit: response.data.message || "Failed to update lead" });
       }

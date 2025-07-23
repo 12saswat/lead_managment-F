@@ -60,7 +60,6 @@ interface FormData {
   notes: string;
   priority: "high" | "medium" | "low";
   documents: File | null;
-  description?: string;
   status: "new" | "in-progress" | "follow-up" | "closed";
 }
 
@@ -142,8 +141,6 @@ export default function AddLeadForm(): JSX.Element {
 
       return () => clearTimeout(timer);
     }
-
-    // Fetch categories on component mount
   }, []);
 
   // Form validation
@@ -229,8 +226,7 @@ export default function AddLeadForm(): JSX.Element {
       // Store the file with its description
       setFormData((prev) => ({
         ...prev,
-        documents: file,
-        description: file.name // Add description as filename
+        documents: file
       }));
 
       // Clear error
@@ -277,7 +273,6 @@ export default function AddLeadForm(): JSX.Element {
       // Handle file upload - important changes here
       if (formData.documents) {
         formDataToSend.append('documents', formData.documents);
-        formDataToSend.append('description', formData.documents.name);
       }
 
       // Log the form data for debugging
@@ -834,7 +829,7 @@ export default function AddLeadForm(): JSX.Element {
                                 type="file"
                                 className="hidden"
                                 onChange={handleFileChange}
-                                accept=".pdf,.doc,.docx,.xls,.xlsx"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png,.jpeg,.txt"
                                 disabled={isLoading}
                               />
                             </Label>
