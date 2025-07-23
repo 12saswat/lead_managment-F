@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, ChevronDown, MessageSquare, PhoneOffIcon, Trash2, Edit, Filter, X, Eye } from 'lucide-react';
+import { Search, ChevronDown, MessageSquare, PhoneOffIcon, Trash2, Edit, Filter, X, Eye, ExternalLink } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import axios from "@/lib/Axios";
 import Pagination from '@/../components/Pagination';
@@ -26,7 +26,12 @@ interface Lead {
   status: 'new' | 'in-progress' | 'follow-up' | 'closed';
   priority: 'high' | 'medium' | 'low';
   assignedTo: { name: string | null }; // Allowed null for unassigned leads
-  document: string[];
+  document: Array<{
+    url: string;
+    description: string;
+    id: string;
+    size: number;
+  }>;
   category: string;
   catColor: string;
   lastContact: string;
@@ -57,7 +62,12 @@ const fetchLeads = async (page: number, setCurrentPage: (n: number) => void, set
       status: lead.status || "new",
       priority: lead.priority || "low",
       assignedTo: lead.assignedTo || { name: "Unassigned" },
-      document: lead.documents || [],
+      document: lead.documents?.map((doc: any) => ({
+        id: doc._id || doc.id,
+        url: doc.url,
+        description: doc.description || 'Untitled Document',
+        size: doc.size || 0
+      })) || [],
       category: lead.category ? lead.category.title : "Un-Categorized",
       catColor: lead.category ? lead.category.color : "#d1d5db",
       lastContact: new Date(lead.createdAt).toLocaleDateString("en-GB"),
@@ -219,7 +229,7 @@ const App: React.FC = () => {
   const [endConvoForm, setEndConvoForm] = useState({ type: 'positive', conclusion: '' });
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<DocumentType[]>([]);
   // Detect worker cookie (001)
   const [isWorker, setIsWorker] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -408,12 +418,18 @@ const App: React.FC = () => {
   };
 
   // Document Viewer Modal
+  interface DocumentType {
+    url: string;
+    description: string;
+    id: string;
+    size: number;
+  }
   const DocumentViewer = ({
     documents,
     isOpen,
     onClose
   }: {
-    documents: string[];
+    documents: DocumentType[];
     isOpen: boolean;
     onClose: () => void;
   }) => {
@@ -421,7 +437,7 @@ const App: React.FC = () => {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-3xl mx-5 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-3xl max-h-2xl mx-5 p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
               Documents ({documents.length})
@@ -438,36 +454,26 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 gap-4 max-h-[70vh] overflow-y-auto">
               {documents.map((doc, index) => (
                 <div
-                  key={index}
-                  className="border dark:border-gray-700 rounded-lg p-4"
+                  key={doc.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                 >
-                  {doc.toLowerCase().endsWith('.pdf') ? (
-                    <iframe
-                      src={doc}
-                      className="w-full h-[500px] rounded-lg"
-                      title={`Document ${index + 1}`}
-                    />
-                  ) : doc.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? (
-                    <img
-                      src={doc}
-                      alt={`Document ${index + 1}`}
-                      className="max-w-full h-auto rounded-lg"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">
-                        {doc.split('/').pop()}
-                      </span>
-                      <a
-                        href={doc}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        Download
-                      </a>
-                    </div>
-                  )}
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                      {doc.description || `Document ${index + 1}`}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {(doc.size / 1024).toFixed(2)} KB
+                    </span>
+                  </div>
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    <span className="text-sm font-medium">View</span>
+                    <ExternalLink size={16} />
+                  </a>
                 </div>
               ))}
             </div>
@@ -984,7 +990,7 @@ const App: React.FC = () => {
                                   setSelectedDocuments(lead.document);
                                   setShowDocumentModal(true);
                                 }}
-                                className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                                className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer relative"
                                 title="View Documents"
                               >
                                 <Eye size={18} />

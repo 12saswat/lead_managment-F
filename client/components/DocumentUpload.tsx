@@ -40,7 +40,7 @@ export default function DocumentUpload({
                         type="file"
                         className="hidden"
                         onChange={onFileChange}
-                        accept=".pdf,.doc,.docx,.xls,.xlsx"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png,.jpeg,.txt"
                         disabled={loading}
                     />
                 </Label>
