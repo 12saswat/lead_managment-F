@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Mail,
   MessageSquare,
-  TrendingUp,
   Send,
   Clock,
   Search,
@@ -17,7 +16,7 @@ import {
   Users,
   Loader2
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import NewCampaignDialog from '../../../../components/CampaignDialog';
 import axios from '@/lib/Axios'; // Assuming this is your configured axios instance
 import { toast } from "sonner";
@@ -264,7 +263,6 @@ const CampaignManagement: React.FC = () => {
       setIsLoading(true);
       try {
         const response = await axios.get('/campaign/all');
-        // console.log("Fetched campaigns:", response.data);
         
         const formattedCampaigns = response.data.data.map((c: any): Campaign => ({
           id: c._id,
