@@ -102,7 +102,7 @@ const fetchLeads = async (): Promise<Lead[]> => {
                 createdAt: lead.createdAt || "",
                 assignedTo: lead.assignedTo ? {
                     id: lead.assignedTo,
-                    name: "Assigned"
+                    name: lead.assignedTo.name
                 } : null,
             }));
 
