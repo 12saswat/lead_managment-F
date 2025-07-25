@@ -18,6 +18,11 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 
+interface User {
+  name: string;
+  role: string;
+}
+
 // Menu items.
 const items = [
   {
@@ -49,28 +54,41 @@ const items = [
 
 const WorkerSidebar = () => {
   const router = useRouter();
-  const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 2025 00:00:00 GMT";
-    const cookies = document.cookie.split(";").map(cookie => cookie.trim());
-    cookies.forEach(cookie => {
-      if (cookie.startsWith("001")) {
-        const name = cookie.split("=")[0];
-        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 2025 00:00:00 GMT`;
-      }
-    });
-    router.push("/worker/auth/login");
-  };
-
-  const [user, setUser] = useState(); 
-  useEffect(() => {
-    axios.get("/user/current").then((res) => {
-      if (res.data.data.name) setUser(res.data.data.name);
-      console.log("Current user:", res.data.data.name);
-    });
-  }, [user]);
-
-
   const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('/user/current');
+        if (response.data.success) {
+          setUser(response.data.data);
+        }
+      }
+      catch (error) {
+        console.error("Failed to fetch current user:", error);
+      }
+      finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [router]);
+
+  // --- MODIFIED FUNCTION ---
+  const handleLogout = async () => {
+    try {
+      await axios.post('/user/logout');
+    } catch (error) {
+      console.error("Server-side logout failed, proceeding with client-side cleanup:", error);
+    } finally {
+      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "002=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      router.push("/worker/auth/login");
+    }
+  }
+
   return (
     <Sidebar collapsible="icon" side="left" className="backdrop-blur-sm border-1 border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/90">
       <SidebarHeader className="py-4">
@@ -114,8 +132,19 @@ const WorkerSidebar = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout} className="cursor-pointer">
-              <LogOut size={16} />
-              <span>{user}</span>
+              <LogOut size={16} className="flex-shrink-0 text-red-400" />
+              <div className="flex flex-col items-start ml-2 overflow-hidden">
+                {isLoading ? (
+                  <span className="text-sm text-gray-500">Loading...</span>
+                ) : user ? (
+                  <>
+                    <span className="font-semibold text-sm truncate">{user.name}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 capitalize">{user.role}</span>
+                  </>
+                ) : (
+                  <span className="text-sm">Not Logged In</span>
+                )}
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

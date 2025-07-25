@@ -637,7 +637,7 @@ const App: React.FC = () => {
 
             {/* Date Filter for worker */}
             {showDateFilter && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col md:flex-row items-center gap-2">
                 <label className="text-sm font-medium text-gray-600">Select by Follow-Up Date:</label>
 
                 <Popover>

@@ -372,10 +372,10 @@ export default function UpdateLeadForm(): JSX.Element {
         }
 
         // Reset success state after 3 seconds
-        // setTimeout(() => {
-        //   setSuccess(false);
-        //   window.location.replace("/leads/all-leads");
-        // }, 3000);
+        setTimeout(() => {
+          setSuccess(false);
+          window.location.replace("/leads/all-leads");
+        }, 3000);
       } else {
         setErrors({ submit: response.data.message || "Failed to update lead" });
       }
