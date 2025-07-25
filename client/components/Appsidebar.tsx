@@ -128,7 +128,7 @@ const Appsidebar = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout} className="w-full justify-start">
-              <LogOut size={16} className="flex-shrink-0" />
+              <LogOut size={16} className="flex-shrink-0 text-red-400" />
               <div className="flex flex-col items-start ml-2 overflow-hidden">
                 {isLoading ? (
                   <span className="text-sm text-gray-500">Loading...</span>

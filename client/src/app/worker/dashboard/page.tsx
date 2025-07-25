@@ -37,7 +37,11 @@ import axios from "@/lib/Axios"; // Assuming you have a configured axios instanc
 import { Button } from "@/components/ui/button"; // Assuming a shadcn/ui Button component
 import { Calendar } from "@/components/ui/calendar"; // Assuming a shadcn/ui Calendar component
 import { Skeleton } from "@/components/ui/skeleton";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 // --- TYPE DEFINITION for API response ---
@@ -50,11 +54,11 @@ interface WorkerDashboardData {
   };
   missingFollowUps: number;
   performanceByCategory: {
-    _id: string;
+    categoryId: string;
     totalLeads: number;
     profitable: number;
-    nonProfitable: number;
-    category: string;
+    nonprofitable: number;
+    categoryName: string; // Corrected from CategoryName to match API response
   }[];
   upcomingSchedule: {
     today: string[];
@@ -85,7 +89,7 @@ const WorkerDashboardSkeleton = () => {
             </div>
             <div className="space-y-6">
                 {[...Array(itemCount)].map((_, i) => (
-                     <div key={i} className="flex items-center space-x-4">
+                    <div key={i} className="flex items-center space-x-4">
                         <div className="flex-1 space-y-2">
                             <Skeleton className="h-4 w-3/4" />
                             <Skeleton className="h-3 w-1/2" />
@@ -221,9 +225,9 @@ const WorkerDashboardPage = () => {
                 leadsMissingFollowUp: dashboardData.missingFollowUps ?? 0,
             },
             categoryProfitableData: dashboardData.performanceByCategory.map(item => ({
-                name: item.category,
+                name: item.categoryName, // Corrected from CategoryName
                 profitable: item.profitable,
-                nonProfitable: item.nonProfitable,
+                nonProfitable: item.nonprofitable,
             })),
             todayFollowUpList: dashboardData.followUpsToday.data.map(item => ({
                 id: item._id,
@@ -309,22 +313,40 @@ const WorkerDashboardPage = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
+
+                    {/* --- MODIFIED LEADS BY CATEGORY CARD --- */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Category Wise Profitable vs Non-Profitable Leads</h3>
-                        <div className="h-64 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={transformedData.categoryProfitableData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="name" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="profitable" fill="#82ca9d" name="Profitable" />
-                                    <Bar dataKey="nonProfitable" fill="#ff7300" name="Non-Profitable" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Leads by Category</h3>
+                        <div className="space-y-5">
+                            {transformedData.categoryProfitableData.length > 0 ? (
+                                transformedData.categoryProfitableData.map((item, index) => {
+                                    const total = item.profitable + item.nonProfitable;
+                                    const profitablePercentage = total > 0 ? (item.profitable / total) * 100 : 0;
+                                    
+                                    return (
+                                        <div key={index}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.name}</span>
+                                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                                    <span className="font-semibold text-green-600">{item.profitable}</span> Profitable / <span className="font-semibold text-orange-600">{item.nonProfitable}</span> Non-Profitable
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-red-400 dark:bg-red-400 rounded-full h-2.5" title={`Total: ${total}`}>
+                                                <div
+                                                    className="bg-green-500 h-2.5 rounded-full"
+                                                    style={{ width: `${profitablePercentage}%` }}
+                                                    title={`Profitable: ${profitablePercentage.toFixed(0)}%`}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-center text-gray-500 py-4">No performance data available for the selected range.</p>
+                            )}
                         </div>
                     </div>
+                    {/* --- END OF MODIFIED CARD --- */}
 
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
