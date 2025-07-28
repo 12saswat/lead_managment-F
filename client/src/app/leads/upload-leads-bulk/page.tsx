@@ -43,7 +43,7 @@ const BulkUploadPage = () => {
     setCategoryError(null);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/v1/category', {
+      const response = await axios.get('/category', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.data.success && Array.isArray(response.data.data)) {
@@ -65,7 +65,7 @@ const BulkUploadPage = () => {
     setWorkerError(null);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/v1/worker/get-all-workers', {
+      const response = await axios.get('/worker/get-all-workers', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (Array.isArray(response.data.data)) {
@@ -145,6 +145,7 @@ const BulkUploadPage = () => {
       formData.append("assignedTo", assignee); // Use worker ID
     }
     try {
+      console.log("Uploading leads with formData:", formData);
       const res = await axios.post("/lead/bulk-upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
       if (res.data.success) {
         toast.success("Leads uploaded successfully!");
@@ -156,6 +157,7 @@ const BulkUploadPage = () => {
         toast.error("Upload failed. Please try again.");
       }
     } catch (error: any) {
+      console.error("Upload error:", error.response);
       toast.error(error?.response?.data?.message || "Upload error.");
     } finally {
       setLoading(false);
@@ -164,10 +166,12 @@ const BulkUploadPage = () => {
 
 
   return (
-    <div className="p-4 md:p-8 bg-slate-50 dark:bg-gray-900 min-h-screen">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex flex-col">
+      {/* === Container === */}
+      <div className="flex flex-col flex-1 items-center px-4 py-4 max-w-7xl mx-auto w-full">
+
         {/* === HEADER === */}
-        <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+        <header className="w-full flex flex-col md:flex-row justify-between items-start md:items-center px-5 gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
               Bulk Upload Leads
@@ -187,9 +191,10 @@ const BulkUploadPage = () => {
         </header>
 
         {/* === MAIN UPLOAD CARD === */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-5xl">
           <div className="flex flex-col lg:flex-row">
-            {/* === LEFT SIDE (FILE & PREVIEW) === */}
+
+            {/* === LEFT SIDE === */}
             <div className="w-full lg:w-3/5 p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700">
               <BulkUploadLeft
                 excelFile={excelFile}
@@ -198,32 +203,38 @@ const BulkUploadPage = () => {
               />
             </div>
 
-            {/* === RIGHT SIDE (CONFIG & UPLOAD) === */}
+            {/* === RIGHT SIDE === */}
             <div className="w-full lg:w-2/5 p-6 md:p-8">
-               <BulkUploadRight
-                  category={category}
-                  setCategory={setCategory}
-                  assignee={assignee}
-                  setAssignee={setAssignee}
-                  loading={loading}
-                  excelFile={excelFile}
-                  handleUpload={handleUpload}
-                  categories={categories}
-                  loadingCategories={loadingCategories}
-                  categoryError={categoryError}
-                  fetchCategories={fetchCategories}
-                  workers={workers}
-                  loadingWorkers={loadingWorkers}
-                  workerError={workerError}
-                  fetchWorkers={fetchWorkers}
-                  showWorkerDropdown={showWorkerDropdown}
-                />
+              <BulkUploadRight
+                category={category}
+                setCategory={setCategory}
+                assignee={assignee}
+                setAssignee={setAssignee}
+                loading={loading}
+                excelFile={excelFile}
+                handleUpload={handleUpload}
+                categories={categories}
+                loadingCategories={loadingCategories}
+                categoryError={categoryError}
+                fetchCategories={fetchCategories}
+                workers={workers}
+                loadingWorkers={loadingWorkers}
+                workerError={workerError}
+                fetchWorkers={fetchWorkers}
+                showWorkerDropdown={showWorkerDropdown}
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+  //           </div >
+  //         </div >
+  //       </div >
+  //     </div >
+  //   </div >
+  // );
 };
 
 export default BulkUploadPage;

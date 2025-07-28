@@ -242,7 +242,7 @@ const Navbar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Link href="#">Dashboard</Link>
+          <Link href="/manager/dashboard">Dashboard</Link>
 
           {/* THEME TOGGLE BUTTON */}
           <div onClick={() => setTheme(prev => prev === "light" ? "dark" : "light")} className="relative flex items-center rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-300 ease-in-out">
