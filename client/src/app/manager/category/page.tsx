@@ -459,7 +459,7 @@ export default function CategoriesManagement() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEdit(category)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 lg:opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 group-hover:opacity-100 transition-opacity"
                         >
                           <Edit className="w-4 h-4 text-blue-600" />
                         </Button>
@@ -467,7 +467,7 @@ export default function CategoriesManagement() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(category)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 lg:opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </Button>
