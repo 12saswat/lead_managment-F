@@ -6,7 +6,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import axios from "@/lib/Axios";
-
+import {
+  Tooltip,
+  TooltipContent,
+} from "@/components/ui/tooltip"
 // Icon imports
 import {
   LogOut, Plus, LayoutDashboard, Users, Copy, Layers, Briefcase, Mail, MessageSquare,
@@ -18,6 +21,7 @@ import {
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton,
   SidebarMenuItem, SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { TooltipTrigger } from '@radix-ui/react-tooltip';
 
 // Define the type for the user data
 interface User {
@@ -127,8 +131,11 @@ const Appsidebar = () => {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+              <Tooltip>
             <SidebarMenuButton onClick={handleLogout} className="w-full justify-start">
+            <TooltipTrigger asChild>
               <LogOut size={16} className="flex-shrink-0 text-red-400" />
+               </ TooltipTrigger> 
               <div className="flex flex-col items-start ml-2 overflow-hidden">
                 {isLoading ? (
                   <span className="text-sm text-gray-500">Loading...</span>
@@ -142,6 +149,11 @@ const Appsidebar = () => {
                 )}
               </div>
             </SidebarMenuButton>
+                 
+              <TooltipContent>
+               <p>Logout</p>
+               </TooltipContent>
+            </Tooltip>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

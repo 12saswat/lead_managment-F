@@ -10,8 +10,6 @@ import {
   UserPlus,
   Send,
   CalendarClock,
-  Briefcase,
-  GitBranch,
   Zap,
   Award,
   Clock,
@@ -38,19 +36,17 @@ import {
   BarChart,
   Bar,
   XAxis,
-  YAxis,
-  CartesianGrid,
 } from "recharts";
-import axios from "@/lib/Axios"; // Assuming you have a configured axios instance
-import { Button } from "@/components/ui/button"; // Assuming a shadcn/ui Button component
-import { Calendar } from "@/components/ui/calendar"; // Assuming shadcn/ui Calendar
+import axios from "@/lib/Axios"; 
+import { Button } from "@/components/ui/button"; 
+import { Calendar } from "@/components/ui/calendar"; 
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"; // Assuming shadcn/ui Popover
-import { cn } from "@/lib/utils"; // Assuming shadcn/ui utility function
-import { Skeleton } from "@/components/ui/skeleton"; // Import the Skeleton component
+} from "@/components/ui/popover"; 
+import { cn } from "@/lib/utils"; 
+import { Skeleton } from "@/components/ui/skeleton"; 
 
 // --- TYPE DEFINITIONS for API response ---
 interface DashboardData {
@@ -235,7 +231,7 @@ const ManagerDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     
     const [date, setDate] = useState<DateRange | undefined>({
-        from: addDays(new Date(), -29),
+        from: addDays(new Date(), -60),
         to: new Date(),
     });
 
@@ -272,6 +268,8 @@ const ManagerDashboardPage = () => {
                 const response = await axios.post('/manager/dashboard', params);
                 if (response.data.success) {
                     setDashboardData(response.data);
+                    console.log("Dashboard data fetched successfully:", response.data);
+                    
                 } else {
                     console.error("Failed to fetch dashboard data:", response.data.message);
                     setDashboardData(null);
@@ -290,12 +288,13 @@ const ManagerDashboardPage = () => {
     // Data Transformation is memoized with useMemo to avoid re-calculation on every render
     const transformedData = React.useMemo(() => {
         if (!dashboardData) return null;
-
+        console.log("Transforming dashboard data:", dashboardData.teamLeaderboard);
+        
         const workerLeaderboard = dashboardData.teamLeaderboard.map(w => ({
             id: w.workerId,
             name: w.name,
             assigned: w.totalAssignedLeads,
-            conversionPercentage: w.convertedPercentage,
+            conversionPercentage: w.convertedPercentage ,
             avatar: w.name.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
         })) ?? [];
 

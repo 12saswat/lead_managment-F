@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns/format';
 import { parse } from 'date-fns/parse';
+import LeadDetailsDialog from '@/../components/LeadDetailsDialog';
 
 // Define the Lead interface
 interface Lead {
@@ -230,6 +231,8 @@ const App: React.FC = () => {
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<DocumentType[]>([]);
+  const [showLeadDetails, setShowLeadDetails] = useState(false);
+  const [selectedLeadDetails, setSelectedLeadDetails] = useState(null);
   // Detect worker cookie (001)
   const [isWorker, setIsWorker] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -384,6 +387,18 @@ const App: React.FC = () => {
     setLeadToDelete(null);
   }, []);
 
+  const handleViewLeadDetails = async (leadId: string) => {
+    try {
+      const response = await axios.get(`/lead/getlead/${leadId}`);
+      if (response.data.success) {
+        setSelectedLeadDetails(response.data.data);
+        setShowLeadDetails(true);
+      }
+    } catch (error) {
+      console.error('Error fetching lead details:', error);
+      toast.error('Failed to fetch lead details');
+    }
+  };
 
   const getStatusBadgeColor = (status: Lead['status']) => {
     switch (status) {
@@ -984,23 +999,13 @@ const App: React.FC = () => {
                               </div>
                             )}
 
-                            {lead.document.length > 0 && (
-                              <button
-                                onClick={() => {
-                                  setSelectedDocuments(lead.document);
-                                  setShowDocumentModal(true);
-                                }}
-                                className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer relative"
-                                title="View Documents"
-                              >
-                                <Eye size={18} />
-                                {lead.document.length > 1 && (
-                                  <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                                    {lead.document.length}
-                                  </span>
-                                )}
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleViewLeadDetails(lead.id)}
+                              className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                              title="View Lead Details"
+                            >
+                              <Eye size={18} />
+                            </button>
 
                             <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
                               <Edit size={18} />
@@ -1205,23 +1210,13 @@ const App: React.FC = () => {
                           </div>
                         )}
 
-                        {lead.document.length > 0 && (
-                          <button
-                            onClick={() => {
-                              setSelectedDocuments(lead.document);
-                              setShowDocumentModal(true);
-                            }}
-                            className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
-                            title="View Documents"
-                          >
-                            <Eye size={18} />
-                            {lead.document.length > 1 && (
-                              <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                                {lead.document.length}
-                              </span>
-                            )}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleViewLeadDetails(lead.id)}
+                          className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                          title="View Lead Details"
+                        >
+                          <Eye size={18} />
+                        </button>
 
                         <button onClick={() => editlead(lead.id)} className="text-gray-400 hover:text-yellow-600 transition-colors cursor-pointer">
                           <Edit size={18} />
@@ -1285,14 +1280,14 @@ const App: React.FC = () => {
         message="Are you sure you want to delete this lead? This action cannot be undone."
       />
 
-      {/* Document Viewer Modal */}
-      <DocumentViewer
-        documents={selectedDocuments}
-        isOpen={showDocumentModal}
+      {/* Lead Details Dialog */}
+      <LeadDetailsDialog
+        isOpen={showLeadDetails}
         onClose={() => {
-          setShowDocumentModal(false);
-          setSelectedDocuments([]);
+          setShowLeadDetails(false);
+          setSelectedLeadDetails(null);
         }}
+        leadData={selectedLeadDetails}
       />
     </div>
   );

@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Edit, Trash2, Calendar, User, Building, Phone, ChevronDown, ChevronUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Search, Filter, Edit, Trash2, User, Building, Phone, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar, Calendar as DatePicker } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import axios from '@/lib/Axios';
 import { toast } from 'sonner';
 
@@ -76,6 +81,7 @@ const ConversationComponent = () => {
   const [updateDialogOpen, setUpdateDialogOpen] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
+  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     const checkCookies = () => {
@@ -150,6 +156,12 @@ const ConversationComponent = () => {
       result = result.filter(conv => conv.category === selectedCategory?.title);
     }
 
+    // Date filter with proper formatting
+    if (dateFilter) {
+      const filterDate = format(dateFilter, 'PPP');
+      result = result.filter(conv => conv.followupDate === filterDate);
+    }
+
     // Filter by worker
     if (workerFilter && workerFilter !== 'all') {
       const selectedWorker = workers.find(worker => worker._id === workerFilter);
@@ -172,8 +184,14 @@ const ConversationComponent = () => {
       });
     }
 
+    // Date filter
+    if (dateFilter) {
+      const filterDate = format(dateFilter, 'yyyy-MM-dd');
+      result = result.filter(conv => conv.followupDate === filterDate);
+    }
+
     return result;
-  }, [conversations, searchTerm, categoryFilter, workerFilter, categories, workers]);
+  }, [conversations, searchTerm, categoryFilter, workerFilter, dateFilter, categories, workers]);
 
   const toggleCardExpansion = (id: string) => {
     setExpandedCards(prev => ({
@@ -288,7 +306,7 @@ const ConversationComponent = () => {
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 md:flex justify-between gap-4">
+          <div className="space-y-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -296,14 +314,15 @@ const ConversationComponent = () => {
                 placeholder="Search by lead name, worker, category, or conclusion..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full md:w-xl"
+                className="pl-10 w-full"
               />
             </div>
 
-            {/* Category Filter */}
-            <div className="flex items-center gap-4">
+            {/* Filters Row */}
+            <div className="flex flex-wrap gap-4">
+              {/* Category Filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -325,7 +344,7 @@ const ConversationComponent = () => {
               {/* Worker Filter */}
               {!hideSelect && (
                 <Select value={workerFilter} onValueChange={setWorkerFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Filter by worker" />
                   </SelectTrigger>
                   <SelectContent>
@@ -337,6 +356,42 @@ const ConversationComponent = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              )}
+
+              {/* Date Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[240px] justify-start text-left font-normal",
+                      !dateFilter && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateFilter ? format(dateFilter, "PPP") : <span>Filter by follow-up date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <DatePicker
+                    mode="single"
+                    selected={dateFilter}
+                    onSelect={setDateFilter}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {dateFilter && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDateFilter(undefined)}
+                  className="h-9 w-9"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Clear date filter</span>
+                </Button>
               )}
             </div>
           </div>
@@ -401,13 +456,9 @@ const ConversationComponent = () => {
 
                   {/* Follow-up Date */}
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <Calendar className="h-4 w-4" />
-                    Follow-up: {conversation.followupDate !== "0"
-                      ? conversation.followupDate
-                      : 'Not scheduled'}
-                    {/* Follow-up: {conversation.followupDate
-                      ? new Date(conversation.followupDate).toLocaleDateString()
-                      : 'Not scheduled'} */}
+                    <span>
+                      Follow-up: {conversation.followupDate}
+                    </span>
                   </div>
 
                   {/* Conclusion */}
@@ -416,10 +467,10 @@ const ConversationComponent = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-h-150 overflow-hidden text-wrap">
                       {expandedCards[conversation.id]
                         ? conversation.conclusion
-                        : truncateText(conversation.conclusion !== null ? conversation.conclusion: 'No conclusion provided')
+                        : truncateText(conversation.conclusion !== null ? conversation.conclusion : 'No conclusion provided')
                       }
                     </p>
-                    {conversation.conclusion!==null && conversation.conclusion.length > 150 && (
+                    {conversation.conclusion !== null && conversation.conclusion.length > 150 && (
                       <Button
                         variant="link"
                         size="sm"
@@ -465,11 +516,16 @@ const ConversationComponent = () => {
                   <Label htmlFor="followupDate" className='mb-2'>Follow-up Date</Label>
                   <Input
                     id="followupDate"
-                    type="date"
-                    value={editingConversation.followupDate}
+                    type="datetime-local"
+                    value={editingConversation.followupDate ?
+                      new Date(editingConversation.followupDate).toISOString().slice(0, 16) :
+                      ''
+                    }
                     onChange={(e) => setEditingConversation({
                       ...editingConversation,
-                      followupDate: e.target.value
+                      followupDate: e.target.value ?
+                        format(new Date(e.target.value), 'PPP') :
+                        'Not scheduled'
                     })}
                   />
                 </div>
@@ -478,7 +534,7 @@ const ConversationComponent = () => {
                   <Label htmlFor="conclusion" className='mb-2'>Conclusion</Label>
                   <Textarea
                     id="conclusion"
-                    value={editingConversation.conclusion!==null ? editingConversation.conclusion : ''}
+                    value={editingConversation.conclusion !== null ? editingConversation.conclusion : ''}
                     onChange={(e) => setEditingConversation({
                       ...editingConversation,
                       conclusion: e.target.value

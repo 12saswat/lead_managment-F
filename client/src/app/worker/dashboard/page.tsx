@@ -20,22 +20,9 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
 import { format, addDays, differenceInDays, isAfter } from "date-fns";
-import {
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
-import axios from "@/lib/Axios"; // Assuming you have a configured axios instance
-import { Button } from "@/components/ui/button"; // Assuming a shadcn/ui Button component
-import { Calendar } from "@/components/ui/calendar"; // Assuming a shadcn/ui Calendar component
+import axios from "@/lib/Axios";
+import { Button } from "@/components/ui/button"; 
+import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Popover,
@@ -58,7 +45,7 @@ interface WorkerDashboardData {
     totalLeads: number;
     profitable: number;
     nonprofitable: number;
-    categoryName: string; // Corrected from CategoryName to match API response
+    categoryName: string;
   }[];
   upcomingSchedule: {
     today: string[];
@@ -154,11 +141,9 @@ const getStatusColor = (status: string) => {
     if (!status) return "bg-gray-100 text-gray-800";
     const lowerCaseStatus = status.toLowerCase();
     switch (lowerCaseStatus) {
-        case "pending": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-        case "scheduled": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-        case "new": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-        case "in-progress": return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-        case "follow-up": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+        case "new": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        case "in progress": return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+        case "follow up": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
         case "closed": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
         default: return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
     }
@@ -353,6 +338,7 @@ const WorkerDashboardPage = () => {
                             <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Today's Follow-Up List</h3>
                             <button onClick={() => router.push('/worker/follow-ups')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
                         </div>
+                        <div className="overflow-y-auto max-h-90">
                         <ul className="space-y-4">
                             {transformedData.todayFollowUpList.length > 0 ? transformedData.todayFollowUpList.map(item => (
                                 <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
@@ -363,20 +349,21 @@ const WorkerDashboardPage = () => {
                                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>{item.status}</span>
                                 </li>
                             )) : <p className="text-center text-gray-500 py-4">No follow-ups scheduled for today.</p>}
-                        </ul>
+                            </ul>
+                        </div>
                     </div>
 
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Recent Assignments</h3>
-                            <button onClick={() => router.push('/worker/assignments')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
+                            <button onClick={() => router.push('/leads/all-leads')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 cursor-pointer">View All</button>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                     <tr>
                                         <th className="p-3">Name</th>
-                                        <th className="p-3">Company</th>
+                                        <th className="p-3">Position</th>
                                         <th className="p-3">Assigned Date</th>
                                         <th className="p-3">Status</th>
                                     </tr>
@@ -414,7 +401,14 @@ const WorkerDashboardPage = () => {
                         <ul className="mt-4 space-y-2">
                             {transformedData.upcomingFollowUps.length > 0 ? transformedData.upcomingFollowUps.map((up, index) => (
                                 <li key={index} className="text-sm text-gray-600 dark:text-gray-300">
-                                    <strong>{format(up.date, "MMMM dd")}:</strong> {up.events.map(e => e.name).join(', ')}
+                                    <strong>{format(up.date, "MMMM dd")}:</strong> <br />
+                                    {up.events.map((e, i) => (
+                                        <span key={i}>
+                                            - {e.name.trim().replace('Follow-up', '')}
+                                            <br />
+                                        </span>
+                                    ))}
+
                                 </li>
                             )) : <p className="text-center text-gray-500 pt-4">No upcoming follow-ups found.</p>}
                         </ul>
@@ -423,7 +417,7 @@ const WorkerDashboardPage = () => {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Overdue Follow-Ups</h3>
-                            <button onClick={() => router.push('/worker/overdue')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All</button>
+                            <button onClick={() => router.push('/leads/all-leads')} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 cursor-pointer">View All</button>
                         </div>
                         <ul className="space-y-4">
                             {transformedData.overdueFollowUps.length > 0 ? transformedData.overdueFollowUps.map(item => (
@@ -436,7 +430,7 @@ const WorkerDashboardPage = () => {
                                         <p className="text-sm text-gray-500 dark:text-gray-400">{item.company} - Due: {formatDate(item.dueDate)}</p>
                                     </div>
                                 </li>
-                            )) : <p className="text-center text-gray-500 py-4">No overdue follow-ups. Great job!</p>}
+                            )) : <p className="text-center text-gray-500 py-4">No overdue follow-ups. <span className="text-green-500">Great job!</span></p>}
                         </ul>
                     </div>
                 </div>
